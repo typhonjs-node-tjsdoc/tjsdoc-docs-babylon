@@ -1,0 +1,18 @@
+/* Some comments! You can include comments in TJSDoc config files */
+{
+  "source": "src",
+  "destination": "docs",
+  "builtinPluginVirtual": true,
+  "emptyDestination": true,
+  "unexportIdentifier": true,
+
+  "test":
+  {
+    "type": "mocha",
+    "source":
+    [
+      "./node_modules/tjsdoc-tests-ecmascript/test/src/html",
+      "./node_modules/tjsdoc-tests-ecmascript/test/src/html-doc"
+    ]
+  }
+}

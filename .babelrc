@@ -1,0 +1,50 @@
+/**
+ * Babel has a bug which requires a workaround for `export * from '...'` found in `./src/BabylonDocs.js`.
+ * See this issue: https://github.com/babel/babel/issues/2877
+ * Solution applied is found here: https://github.com/babel/babel/issues/2877#issuecomment-280297439
+ * `passPerPreset` is enabled to run `transform-runtime` then the standard presets.
+ */
+{
+  "passPerPreset": true,
+
+  "presets":
+  [
+    { "plugins": [ "transform-runtime" ] },
+    {
+      "passPerPreset": false,
+      "presets": [ "latest", "stage-2" ]
+    }
+  ],
+
+  "plugins":
+  [
+    "add-module-exports",
+    ["module-resolver", {
+      "root": ["."],
+      "alias":
+      {
+        "tjsdoc-docs-common/src": "tjsdoc-docs-common/dist"
+      }
+    }]
+  ],
+
+  "env":
+  {
+    "tjsdoc-dev":
+    {
+      "plugins":
+      [
+        "add-module-exports",
+        ["module-resolver", {
+          "root": ["."],
+          "cwd": "babelrc",
+          "alias":
+          {
+            "tjsdoc-docs-common": "../tjsdoc-docs-common/src",
+            "tjsdoc-docs-common/src": "../tjsdoc-docs-common/src"
+          }
+        }]
+      ]
+    }
+  }
+}
