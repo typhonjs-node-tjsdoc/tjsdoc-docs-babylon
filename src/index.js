@@ -24,7 +24,7 @@ export function onPluginLoad(ev)
    const eventbus = ev.eventbus;
 
    // Instances are being loaded into the plugin manager so auto log filtering needs an explicit filter.
-   eventbus.trigger('log:add:filter', {
+   eventbus.trigger('log:filter:add', {
       type: 'inclusive',
       name: 'tjsdoc-docs-babylon',
       filterString: '(tjsdoc-docs-babylon\/dist|tjsdoc-docs-babylon\/src)'
