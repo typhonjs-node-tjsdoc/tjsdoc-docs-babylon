@@ -202,7 +202,7 @@ export default class ParamParser extends AbstractParamParser
    {
       const result = {};
 
-      this._eventbus.trigger('ast:walker:traverse', body,
+      this._eventbus.trigger('typhonjs:ast:walker:traverse', body,
       {
          enterNode: (node) =>
          {
