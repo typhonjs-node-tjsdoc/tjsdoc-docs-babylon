@@ -88,7 +88,7 @@ export default class ClassDoc extends AbstractClassDoc
       }
       else
       {
-         this._value.name = this._eventbus.triggerSync('tjsdoc:filepath:to:name', this._pathResolver.filePath);
+         this._value.name = this._eventbus.triggerSync('tjsdoc:system:filepath:to:name', this._pathResolver.filePath);
       }
    }
 }
