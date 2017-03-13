@@ -51,9 +51,13 @@ export default class ClassDoc extends AbstractClassDoc
 
                case 'MemberExpression':
                {
-                  const fullIdentifier = this._eventbus.triggerSync('tjsdoc:ast:flatten:member:expression', target);
+                  const fullIdentifier = this._eventbus.triggerSync('tjsdoc:system:ast:member:expression:flatten',
+                   target);
+
                   const rootIdentifier = fullIdentifier.split('.')[0];
+
                   const rootLongname = this._resolveLongname(rootIdentifier);
+
                   const filePath = rootLongname.replace(/~.*/, '');
 
                   longnames.push(`${filePath}~${fullIdentifier}`);

@@ -597,7 +597,7 @@ export class DocFactory
 
             case 'Identifier':
             {
-               const varNode = this._eventbus.triggerSync('tjsdoc:ast:find:variable:declaration:new:expression',
+               const varNode = this._eventbus.triggerSync('tjsdoc:system:ast:variable:declaration:new:expression:find',
                 exportNode.declaration.name, this._ast);
 
                if (varNode)
@@ -606,7 +606,7 @@ export class DocFactory
                   targetVariableName = exportNode.declaration.name;
                   pseudoClassExport = true;
 
-                  this._eventbus.trigger('tjsdoc:ast:node:sanitize', varNode);
+                  this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', varNode);
                }
                else
                {
@@ -630,7 +630,8 @@ export class DocFactory
                break;
          }
 
-         const classNode = this._eventbus.triggerSync('tjsdoc:ast:find:class:declaration', targetClassName, this._ast);
+         const classNode = this._eventbus.triggerSync('tjsdoc:system:ast:class:declaration:find', targetClassName,
+          this._ast);
 
          if (classNode)
          {
@@ -647,17 +648,17 @@ export class DocFactory
                const pseudoExportNode2 = this._copy(exportNode);
 
                pseudoExportNode2.declaration = this._eventbus.triggerSync(
-                'tjsdoc:ast:create:variable:declaration:new:expression', targetVariableName, targetClassName,
+                'tjsdoc:system:ast:variable:declaration:new:expression:create', targetVariableName, targetClassName,
                  exportNode.loc);
 
                pseudoExportNodes.push(pseudoExportNode2);
             }
 
-            this._eventbus.trigger('tjsdoc:ast:node:sanitize', classNode);
-            this._eventbus.trigger('tjsdoc:ast:node:sanitize', exportNode);
+            this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', classNode);
+            this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', exportNode);
          }
 
-         const functionNode = this._eventbus.triggerSync('tjsdoc:ast:find:function:declaration',
+         const functionNode = this._eventbus.triggerSync('tjsdoc:system:ast:function:declaration:find',
           exportNode.declaration.name, this._ast);
 
          if (functionNode)
@@ -666,13 +667,13 @@ export class DocFactory
 
             pseudoExportNode.declaration = this._copy(functionNode);
 
-            this._eventbus.trigger('tjsdoc:ast:node:sanitize', exportNode);
-            this._eventbus.trigger('tjsdoc:ast:node:sanitize', functionNode);
+            this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', exportNode);
+            this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', functionNode);
 
             pseudoExportNodes.push(pseudoExportNode);
          }
 
-         const variableNode = this._eventbus.triggerSync('tjsdoc:ast:find:variable:declaration',
+         const variableNode = this._eventbus.triggerSync('tjsdoc:system:ast:variable:declaration:find',
           exportNode.declaration.name, this._ast);
 
          if (variableNode)
@@ -681,8 +682,8 @@ export class DocFactory
 
             pseudoExportNode.declaration = this._copy(variableNode);
 
-            this._eventbus.trigger('tjsdoc:ast:node:sanitize', exportNode);
-            this._eventbus.trigger('tjsdoc:ast:node:sanitize', variableNode);
+            this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', exportNode);
+            this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', variableNode);
 
             pseudoExportNodes.push(pseudoExportNode);
          }
@@ -726,7 +727,7 @@ export class DocFactory
             {
                if (!declaration.init || declaration.init.type !== 'NewExpression') { continue; }
 
-               const classNode = this._eventbus.triggerSync('tjsdoc:ast:find:class:declaration',
+               const classNode = this._eventbus.triggerSync('tjsdoc:system:ast:class:declaration:find',
                 declaration.init.callee.name, this._ast);
 
                if (classNode)
@@ -738,7 +739,7 @@ export class DocFactory
                   pseudoExportNodes.push(pseudoExportNode);
                   pseudoExportNode.declaration.__PseudoExport__ = true;
 
-                  this._eventbus.trigger('tjsdoc:ast:node:sanitize', classNode);
+                  this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', classNode);
                }
             }
             continue;
@@ -751,7 +752,7 @@ export class DocFactory
             let targetClassName = null;
             let pseudoClassExport;
 
-            const varNode = this._eventbus.triggerSync('tjsdoc:ast:find:variable:declaration:new:expression',
+            const varNode = this._eventbus.triggerSync('tjsdoc:system:ast:variable:declaration:new:expression:find',
              specifier.exported.name, this._ast);
 
             if (varNode)
@@ -765,7 +766,7 @@ export class DocFactory
                pseudoExportNode.specifiers = null;
                pseudoExportNodes.push(pseudoExportNode);
 
-               this._eventbus.trigger('tjsdoc:ast:node:sanitize', varNode);
+               this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', varNode);
             }
             else
             {
@@ -773,7 +774,7 @@ export class DocFactory
                pseudoClassExport = false;
             }
 
-            const classNode = this._eventbus.triggerSync('tjsdoc:ast:find:class:declaration', targetClassName,
+            const classNode = this._eventbus.triggerSync('tjsdoc:system:ast:class:declaration:find', targetClassName,
              this._ast);
 
             if (classNode)
@@ -787,10 +788,10 @@ export class DocFactory
 
                pseudoExportNodes.push(pseudoExportNode);
 
-               this._eventbus.trigger('tjsdoc:ast:node:sanitize', classNode);
+               this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', classNode);
             }
 
-            const functionNode = this._eventbus.triggerSync('tjsdoc:ast:find:function:declaration',
+            const functionNode = this._eventbus.triggerSync('tjsdoc:system:ast:function:declaration:find',
              specifier.exported.name, this._ast);
 
             if (functionNode)
@@ -801,12 +802,12 @@ export class DocFactory
                pseudoExportNode.leadingComments = null;
                pseudoExportNode.specifiers = null;
 
-               this._eventbus.trigger('tjsdoc:ast:node:sanitize', functionNode);
+               this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', functionNode);
 
                pseudoExportNodes.push(pseudoExportNode);
             }
 
-            const variableNode = this._eventbus.triggerSync('tjsdoc:ast:find:variable:declaration',
+            const variableNode = this._eventbus.triggerSync('tjsdoc:system:ast:variable:declaration:find',
              specifier.exported.name, this._ast);
 
             if (variableNode)
@@ -817,7 +818,7 @@ export class DocFactory
                pseudoExportNode.leadingComments = null;
                pseudoExportNode.specifiers = null;
 
-               this._eventbus.trigger('tjsdoc:ast:node:sanitize', variableNode);
+               this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', variableNode);
 
                pseudoExportNodes.push(pseudoExportNode);
             }

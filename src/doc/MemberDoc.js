@@ -26,7 +26,7 @@ export default class MemberDoc extends AbstractMemberDoc
       }
       else
       {
-         name = this._eventbus.triggerSync('tjsdoc:ast:flatten:member:expression',
+         name = this._eventbus.triggerSync('tjsdoc:system:ast:member:expression:flatten',
             this._node.left).replace(/^this\./, '');
       }
       this._value.name = name;

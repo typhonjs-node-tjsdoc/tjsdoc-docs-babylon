@@ -10,7 +10,7 @@ export default class AssignmentDoc extends AbstractAssignmentDoc
     */
    _$name()
    {
-      this._value.name = this._eventbus.triggerSync('tjsdoc:ast:flatten:member:expression',
+      this._value.name = this._eventbus.triggerSync('tjsdoc:system:ast:member:expression:flatten',
        this._node.left).replace(/^this\./, '');
    }
 }
