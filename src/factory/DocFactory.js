@@ -15,7 +15,7 @@ const s_ALREADY = Symbol('already');
  * factory.push(node, parentNode);
  * let docData = factory.docData;
  */
-export default class DocFactory
+export class DocFactory
 {
    /**
     * Instantiates DocFactory.
@@ -1030,4 +1030,58 @@ export default class DocFactory
 
       return exportedASTNode;
    }
+}
+
+/**
+ * Wires up two events to create DocFactory instances for in memory code and file usage.
+ *
+ * @param {PluginEvent} ev - The plugin event.
+ */
+export function onPluginLoad(ev)
+{
+   const eventbus = ev.eventbus;
+
+   eventbus.on('tjsdoc:create:code:doc:factory', (ast, code, filePath) =>
+   {
+      if (typeof ast !== 'object')
+      {
+         throw new TypeError(`'tjsdoc:create:code:doc:factory' - 'ast' is not an 'object'.`);
+      }
+
+      if (typeof code !== 'string')
+      {
+         throw new TypeError(`'tjsdoc:create:code:doc:factory' - 'code' is not a 'string'.`);
+      }
+
+      const pathResolver = eventbus.triggerSync('tjsdoc:create:path:resolver', filePath);
+
+      if (typeof pathResolver !== 'object')
+      {
+         throw new TypeError(`'tjsdoc:create:code:doc:factory' - Could not create 'pathResolver'.`);
+      }
+
+      return new DocFactory(ast, pathResolver, eventbus, code);
+   });
+
+   eventbus.on('tjsdoc:create:file:doc:factory', (ast, filePath) =>
+   {
+      if (typeof ast !== 'object')
+      {
+         throw new TypeError(`'tjsdoc:create:file:doc:factory' - 'ast' is not an 'object'.`);
+      }
+
+      if (typeof filePath !== 'string')
+      {
+         throw new TypeError(`'tjsdoc:create:file:doc:factory' - 'filePath' is not a 'string'.`);
+      }
+
+      const pathResolver = eventbus.triggerSync('tjsdoc:create:path:resolver', filePath);
+
+      if (typeof pathResolver !== 'object')
+      {
+         throw new TypeError(`'tjsdoc:create:file:doc:factory' - Could not create 'pathResolver'.`);
+      }
+
+      return new DocFactory(ast, pathResolver, eventbus);
+   });
 }

@@ -15,7 +15,7 @@ const s_ALREADY = Symbol('already');
  * factory.push(node, parentNode);
  * let docData = factory.docData;
  */
-export default class TestDocFactory
+export class TestDocFactory
 {
    /**
     * create instance.
@@ -150,4 +150,41 @@ export default class TestDocFactory
 
       this._docData.push(testDoc.value);
    }
+}
+
+/**
+ * Wires up two events to create DocFactory instances for in memory code and file usage.
+ *
+ * @param {PluginEvent} ev - The plugin event.
+ */
+export function onPluginLoad(ev)
+{
+   const eventbus = ev.eventbus;
+
+   eventbus.on('tjsdoc:create:test:doc:factory', (type, ast, filePath) =>
+   {
+      if (typeof type !== 'string')
+      {
+         throw new TypeError(`'tjsdoc:create:test:doc:factory' - 'type' is not a 'string'.`);
+      }
+
+      if (typeof ast !== 'object')
+      {
+         throw new TypeError(`'tjsdoc:create:test:doc:factory' - 'ast' is not an 'object'.`);
+      }
+
+      if (typeof filePath !== 'string')
+      {
+         throw new TypeError(`'tjsdoc:create:test:doc:factory' - 'filePath' is not a 'string'.`);
+      }
+
+      const pathResolver = eventbus.triggerSync('tjsdoc:create:path:resolver', filePath);
+
+      if (typeof pathResolver !== 'object')
+      {
+         throw new TypeError(`'tjsdoc:create:test:doc:factory' - Could not create 'pathResolver'.`);
+      }
+
+      return new TestDocFactory(type, ast, pathResolver, eventbus);
+   });
 }
