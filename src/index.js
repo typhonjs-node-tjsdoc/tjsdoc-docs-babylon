@@ -3,6 +3,7 @@ import * as Docs           from './doc/';
 import * as DocFactory     from './factory/DocFactory.js';
 import * as TestDocFactory from './factory/TestDocFactory.js';
 
+import ASTUtil             from './parser/ASTUtil.js';
 import CommentParser       from './parser/CommentParser.js';
 import ParamParser         from './parser/ParamParser.js';
 
@@ -32,6 +33,7 @@ export function onPluginLoad(ev)
 
    // Adds all Babylon doc parser plugins
    eventbus.trigger('plugins:add:all', [
+      { name: 'tjsdoc-ast-util', instance: new ASTUtil() },
       { name: 'tjsdoc-comment-parser', instance: new CommentParser() },
       { name: 'tjsdoc-doc-factory', instance: DocFactory },
       { name: 'tjsdoc-param-parser', instance: new ParamParser() },
