@@ -153,7 +153,7 @@ export class TestDocFactory
 }
 
 /**
- * Wires up two events to create DocFactory instances for in memory code and file usage.
+ * Wires up the event binding to create TestDocFactory instances for tests.
  *
  * @param {PluginEvent} ev - The plugin event.
  */
@@ -161,28 +161,28 @@ export function onPluginLoad(ev)
 {
    const eventbus = ev.eventbus;
 
-   eventbus.on('tjsdoc:create:test:doc:factory', (type, ast, filePath) =>
+   eventbus.on('tjsdoc:system:doc:factory:test:create', (type, ast, filePath) =>
    {
       if (typeof type !== 'string')
       {
-         throw new TypeError(`'tjsdoc:create:test:doc:factory' - 'type' is not a 'string'.`);
+         throw new TypeError(`'tjsdoc:system:doc:factory:test:create' - 'type' is not a 'string'.`);
       }
 
       if (typeof ast !== 'object')
       {
-         throw new TypeError(`'tjsdoc:create:test:doc:factory' - 'ast' is not an 'object'.`);
+         throw new TypeError(`'tjsdoc:system:doc:factory:test:create' - 'ast' is not an 'object'.`);
       }
 
       if (typeof filePath !== 'string')
       {
-         throw new TypeError(`'tjsdoc:create:test:doc:factory' - 'filePath' is not a 'string'.`);
+         throw new TypeError(`'tjsdoc:system:doc:factory:test:create' - 'filePath' is not a 'string'.`);
       }
 
-      const pathResolver = eventbus.triggerSync('tjsdoc:create:path:resolver', filePath);
+      const pathResolver = eventbus.triggerSync('tjsdoc:system:path:resolver:create', filePath);
 
       if (typeof pathResolver !== 'object')
       {
-         throw new TypeError(`'tjsdoc:create:test:doc:factory' - Could not create 'pathResolver'.`);
+         throw new TypeError(`'tjsdoc:system:doc:factory:test:create' - Could not create 'pathResolver'.`);
       }
 
       return new TestDocFactory(type, ast, pathResolver, eventbus);

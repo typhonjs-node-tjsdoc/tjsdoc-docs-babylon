@@ -1041,45 +1041,45 @@ export function onPluginLoad(ev)
 {
    const eventbus = ev.eventbus;
 
-   eventbus.on('tjsdoc:create:code:doc:factory', (ast, code, filePath) =>
+   eventbus.on('tjsdoc:system:doc:factory:code:create', (ast, code, filePath) =>
    {
       if (typeof ast !== 'object')
       {
-         throw new TypeError(`'tjsdoc:create:code:doc:factory' - 'ast' is not an 'object'.`);
+         throw new TypeError(`'tjsdoc:system:doc:factory:code:create' - 'ast' is not an 'object'.`);
       }
 
       if (typeof code !== 'string')
       {
-         throw new TypeError(`'tjsdoc:create:code:doc:factory' - 'code' is not a 'string'.`);
+         throw new TypeError(`'tjsdoc:system:doc:factory:code:create' - 'code' is not a 'string'.`);
       }
 
-      const pathResolver = eventbus.triggerSync('tjsdoc:create:path:resolver', filePath);
+      const pathResolver = eventbus.triggerSync('tjsdoc:system:path:resolver:create', filePath);
 
       if (typeof pathResolver !== 'object')
       {
-         throw new TypeError(`'tjsdoc:create:code:doc:factory' - Could not create 'pathResolver'.`);
+         throw new TypeError(`'tjsdoc:system:doc:factory:code:create' - Could not create 'pathResolver'.`);
       }
 
       return new DocFactory(ast, pathResolver, eventbus, code);
    });
 
-   eventbus.on('tjsdoc:create:file:doc:factory', (ast, filePath) =>
+   eventbus.on('tjsdoc:system:doc:factory:file:create', (ast, filePath) =>
    {
       if (typeof ast !== 'object')
       {
-         throw new TypeError(`'tjsdoc:create:file:doc:factory' - 'ast' is not an 'object'.`);
+         throw new TypeError(`'tjsdoc:system:doc:factory:file:create' - 'ast' is not an 'object'.`);
       }
 
       if (typeof filePath !== 'string')
       {
-         throw new TypeError(`'tjsdoc:create:file:doc:factory' - 'filePath' is not a 'string'.`);
+         throw new TypeError(`'tjsdoc:system:doc:factory:file:create' - 'filePath' is not a 'string'.`);
       }
 
-      const pathResolver = eventbus.triggerSync('tjsdoc:create:path:resolver', filePath);
+      const pathResolver = eventbus.triggerSync('tjsdoc:system:path:resolver:create', filePath);
 
       if (typeof pathResolver !== 'object')
       {
-         throw new TypeError(`'tjsdoc:create:file:doc:factory' - Could not create 'pathResolver'.`);
+         throw new TypeError(`'tjsdoc:system:doc:factory:file:create' - Could not create 'pathResolver'.`);
       }
 
       return new DocFactory(ast, pathResolver, eventbus);
