@@ -70,7 +70,7 @@ export default class MethodDoc extends AbstractMethodDoc
 
       if (['set', 'get'].includes(this._value.kind)) { return; }
 
-      this._value.params = this._eventbus.triggerSync('tjsdoc:guess:params', this._node.params);
+      this._value.params = this._eventbus.triggerSync('tjsdoc:system:parser:param:guess', this._node.params);
    }
 
    /**
@@ -87,7 +87,7 @@ export default class MethodDoc extends AbstractMethodDoc
 
       if (['constructor', 'set', 'get'].includes(this._value.kind)) { return; }
 
-      const result = this._eventbus.triggerSync('tjsdoc:guess:return:param', this._node.body);
+      const result = this._eventbus.triggerSync('tjsdoc:system:parser:param:return:guess', this._node.body);
 
       if (result)
       {
@@ -118,12 +118,12 @@ export default class MethodDoc extends AbstractMethodDoc
       switch (this._value.kind)
       {
          case 'set':
-            this._value.type = this._eventbus.triggerSync('tjsdoc:guess:type', this._node.right);
+            this._value.type = this._eventbus.triggerSync('tjsdoc:system:parser:param:type:guess', this._node.right);
             break;
 
          case 'get':
          {
-            const result = this._eventbus.triggerSync('tjsdoc:guess:return:param', this._node.body);
+            const result = this._eventbus.triggerSync('tjsdoc:system:parser:param:return:guess', this._node.body);
 
             if (result) { this._value.type = result; }
             break;

@@ -963,7 +963,10 @@ export class DocFactory
 
          for (const comment of comments)
          {
-            if (this._eventbus.triggerSync('tjsdoc:get:comment:node:value', comment) !== void 0) { temp.push(comment); }
+            if (this._eventbus.triggerSync('tjsdoc:system:parser:comment:node:value:get', comment) !== void 0)
+            {
+               temp.push(comment);
+            }
          }
 
          comments = temp;
@@ -983,7 +986,7 @@ export class DocFactory
 
       for (const comment of comments)
       {
-         const tags = this._eventbus.triggerSync('tjsdoc:parse:comment', comment);
+         const tags = this._eventbus.triggerSync('tjsdoc:system:parser:comment:parse', comment);
 
          let doc;
 

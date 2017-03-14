@@ -51,7 +51,8 @@ export default class VariableDoc extends AbstractVariableDoc
       }
       else
       {
-         this._value.type = this._eventbus.triggerSync('tjsdoc:guess:type', this._node.declarations[0].init);
+         this._value.type = this._eventbus.triggerSync('tjsdoc:system:parser:param:type:guess',
+          this._node.declarations[0].init);
       }
    }
 }

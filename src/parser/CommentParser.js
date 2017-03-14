@@ -8,7 +8,7 @@ import AbstractCommentParser from 'tjsdoc-docs-common/src/parser/AbstractComment
  *
  * for (let comment of node.leadingComments)
  * {
- *   let tags = eventbus.triggerSync('tjsdoc:parse:comment', comment);
+ *   let tags = eventbus.triggerSync('tjsdoc:system:parser:comment:parse', comment);
  *   console.log(tags);
  * }
  */

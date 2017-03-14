@@ -49,7 +49,7 @@ export default class FunctionDoc extends AbstractFunctionDoc
 
       if (this._value.params) { return; }
 
-      this._value.params = this._eventbus.triggerSync('tjsdoc:guess:params', this._node.params);
+      this._value.params = this._eventbus.triggerSync('tjsdoc:system:parser:param:guess', this._node.params);
    }
 
    /** If @return does not exist then guess type of return by using self node. */
@@ -59,7 +59,7 @@ export default class FunctionDoc extends AbstractFunctionDoc
 
       if (this._value.return) { return; }
 
-      const result = this._eventbus.triggerSync('tjsdoc:guess:return:param', this._node.body);
+      const result = this._eventbus.triggerSync('tjsdoc:system:parser:param:return:guess', this._node.body);
 
       if (result)
       {

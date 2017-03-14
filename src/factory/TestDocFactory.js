@@ -138,7 +138,7 @@ export class TestDocFactory
       {
          const comment = node.leadingComments[node.leadingComments.length - 1];
 
-         tags = this._eventbus.triggerSync('tjsdoc:parse:comment', comment);
+         tags = this._eventbus.triggerSync('tjsdoc:system:parser:comment:parse', comment);
       }
 
       const uniqueId = this.constructor._getUniqueId();

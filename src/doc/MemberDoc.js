@@ -55,6 +55,6 @@ export default class MemberDoc extends AbstractMemberDoc
 
       if (this._value.type) { return; }
 
-      this._value.type = this._eventbus.triggerSync('tjsdoc:guess:type', this._node.right);
+      this._value.type = this._eventbus.triggerSync('tjsdoc:system:parser:param:type:guess', this._node.right);
    }
 }
