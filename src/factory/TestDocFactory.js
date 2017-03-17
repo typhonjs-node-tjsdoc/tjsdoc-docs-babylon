@@ -20,15 +20,17 @@ export class TestDocFactory
    /**
     * create instance.
     *
-    * @param {string}         type - Test type. For now only `mocha` is supported.
+    * @param {string}            type - Test type. For now only `mocha` is supported.
     *
-    * @param {AST}            ast - AST of test code.
+    * @param {AST}               ast - AST of test code.
     *
-    * @param {PathResolver}   pathResolver - Path resolver associated with test code.
+    * @param {ASTNodeContainer}  astNodeContainer - All doc object AST nodes are added to this object.
     *
-    * @param {EventProxy}     eventbus - An event proxy for the main eventbus.
+    * @param {PathResolver}      pathResolver - Path resolver associated with test code.
+    *
+    * @param {EventProxy}        eventbus - An event proxy for the main eventbus.
     */
-   constructor(type, ast, pathResolver, eventbus)
+   constructor(type, ast, astNodeContainer, pathResolver, eventbus)
    {
       if (typeof type !== 'string') { throw new TypeError(`'type' is not a 'string'.`); }
       if (typeof ast !== 'object') { throw new TypeError(`'ast' is not an 'object'.`); }
@@ -44,6 +46,13 @@ export class TestDocFactory
        * @type {AST}
        */
       this._ast = ast;
+
+      /**
+       * AST node container.
+       * @type {ASTNodeContainer}
+       * @private
+       */
+      this._astNodeContainer = astNodeContainer;
 
       /**
        * Path resolver associated with test code.
@@ -64,7 +73,7 @@ export class TestDocFactory
       this._docData = [];
 
       // file doc
-      const doc = new Docs.TestFileDoc(ast, ast, pathResolver, [], this._eventbus);
+      const doc = new Docs.TestFileDoc(astNodeContainer.add(ast), ast, ast, pathResolver, [], this._eventbus);
 
       /**
        * The associated ES file / module ID.
@@ -146,7 +155,8 @@ export class TestDocFactory
       expression._tjsdocTestId = uniqueId;
       expression._tjsdocTestName = expression.callee.name + uniqueId;
 
-      const testDoc = new Docs.TestDoc(this._moduleID, this._ast, expression, this._pathResolver, tags, this._eventbus);
+      const testDoc = new Docs.TestDoc(this._astNodeContainer.add(expression), this._moduleID, this._ast, expression,
+       this._pathResolver, tags, this._eventbus);
 
       this._docData.push(testDoc.value);
    }
@@ -161,7 +171,7 @@ export function onPluginLoad(ev)
 {
    const eventbus = ev.eventbus;
 
-   eventbus.on('tjsdoc:system:doc:factory:test:create', (type, ast, filePath) =>
+   eventbus.on('tjsdoc:system:doc:factory:test:create', ({ type, ast, astNodeContainer, filePath } = {}) =>
    {
       if (typeof type !== 'string')
       {
@@ -185,6 +195,6 @@ export function onPluginLoad(ev)
          throw new TypeError(`'tjsdoc:system:doc:factory:test:create' - Could not create 'pathResolver'.`);
       }
 
-      return new TestDocFactory(type, ast, pathResolver, eventbus);
+      return new TestDocFactory(type, ast, astNodeContainer, pathResolver, eventbus);
    });
 }
