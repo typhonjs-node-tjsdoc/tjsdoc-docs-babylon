@@ -37,7 +37,7 @@ export default class MethodDoc extends AbstractMethodDoc
       {
          if (parent.type === 'ClassDeclaration' || parent.type === 'ClassExpression')
          {
-            memberof = `${this._pathResolver.filePath}~${parent.doc.value.name}`;
+            memberof = `${this._pathResolver.filePath}~${parent._docName}`;
             this._value.memberof = memberof;
             return;
          }
