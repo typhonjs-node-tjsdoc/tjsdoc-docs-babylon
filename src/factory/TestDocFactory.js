@@ -24,13 +24,13 @@ export class TestDocFactory
     *
     * @param {AST}               ast - AST of test code.
     *
-    * @param {ASTNodeContainer}  astNodeContainer - All doc object AST nodes are added to this object.
+    * @param {DocDB}             docDB - The target DocDB.
     *
     * @param {PathResolver}      pathResolver - Path resolver associated with test code.
     *
     * @param {EventProxy}        eventbus - An event proxy for the main eventbus.
     */
-   constructor(type, ast, astNodeContainer, pathResolver, eventbus)
+   constructor(type, ast, docDB, pathResolver, eventbus)
    {
       if (typeof type !== 'string') { throw new TypeError(`'type' is not a 'string'.`); }
       if (typeof ast !== 'object') { throw new TypeError(`'ast' is not an 'object'.`); }
@@ -48,11 +48,11 @@ export class TestDocFactory
       this._ast = ast;
 
       /**
-       * AST node container.
-       * @type {ASTNodeContainer}
+       * The target DocDB.
+       * @type {DocDB}
        * @private
        */
-      this._astNodeContainer = astNodeContainer;
+      this._docDB = docDB;
 
       /**
        * Path resolver associated with test code.
@@ -66,30 +66,20 @@ export class TestDocFactory
        */
       this._eventbus = eventbus;
 
-      /**
-       * The parsed DocObjects.
-       * @type {DocObject[]}
-       */
-      this._docData = [];
+      // Gets the current global / main plugin DocDB counter doc ID then increment it.
+      const docID = eventbus.triggerSync('tjsdoc:data:docdb:current:id:increment:get');
 
-      // file doc
-      const doc = new Docs.TestFileDoc(astNodeContainer.add(ast), ast, ast, pathResolver, [], this._eventbus);
+      // Test file doc
+      const doc = new Docs.TestFileDoc(docID, ast, ast, pathResolver, [], this._eventbus);
+
+      // Insert test file doc and destroy.
+      this._docDB.insert(doc.destroy());
 
       /**
        * The associated ES file / module ID.
        * @type {number}
        */
-      this._moduleID = doc.value.__docId__;
-
-      this._docData.push(doc.value);
-   }
-
-   /**
-    * @type {DocObject[]}
-    */
-   get docData()
-   {
-      return [...this._docData];
+      this._moduleID = docID;
    }
 
    /**
@@ -155,10 +145,11 @@ export class TestDocFactory
       expression._tjsdocTestId = uniqueId;
       expression._tjsdocTestName = expression.callee.name + uniqueId;
 
-      const testDoc = new Docs.TestDoc(this._astNodeContainer.add(expression), this._moduleID, this._ast, expression,
-       this._pathResolver, tags, this._eventbus);
+      const testDoc = new Docs.TestDoc(this._eventbus.triggerSync('tjsdoc:data:docdb:current:id:increment:get'),
+       this._moduleID, this._ast, expression, this._pathResolver, tags, this._eventbus);
 
-      this._docData.push(testDoc.value);
+      // Insert test doc and destroy.
+      this._docDB.insert(testDoc.destroy());
    }
 }
 
@@ -171,7 +162,7 @@ export function onPluginLoad(ev)
 {
    const eventbus = ev.eventbus;
 
-   eventbus.on('tjsdoc:system:doc:factory:test:create', ({ type, ast, astNodeContainer, filePath } = {}) =>
+   eventbus.on('tjsdoc:system:doc:factory:test:create', ({ type, ast, docDB, filePath } = {}) =>
    {
       if (typeof type !== 'string')
       {
@@ -195,6 +186,6 @@ export function onPluginLoad(ev)
          throw new TypeError(`'tjsdoc:system:doc:factory:test:create' - Could not create 'pathResolver'.`);
       }
 
-      return new TestDocFactory(type, ast, astNodeContainer, pathResolver, eventbus);
+      return new TestDocFactory(type, ast, docDB, pathResolver, eventbus);
    });
 }

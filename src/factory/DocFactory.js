@@ -22,7 +22,7 @@ export class DocFactory
     *
     * @param {AST}               ast - AST of source code.
     *
-    * @param {ASTNodeContainer}  astNodeContainer - All doc object AST nodes are added to this object.
+    * @param {DocDB}             docDB - The target DocDB.
     *
     * @param {PathResolver}      pathResolver - The path resolver of source code.
     *
@@ -30,7 +30,7 @@ export class DocFactory
     *
     * @param {String}            [code] - Designates that the ast is from an in memory source rather than a file.
     */
-   constructor(ast, astNodeContainer, pathResolver, eventbus, code = void 0)
+   constructor(ast, docDB, pathResolver, eventbus, code = void 0)
    {
       /**
        * AST of source code.
@@ -40,11 +40,11 @@ export class DocFactory
       this._ast = ast;
 
       /**
-       * AST node container.
-       * @type {ASTNodeContainer}
+       * The target DocDB.
+       * @type {DocDB}
        * @private
        */
-      this._astNodeContainer = astNodeContainer;
+      this._docDB = docDB;
 
       /**
        * The path resolver of source code.
@@ -61,31 +61,27 @@ export class DocFactory
       this._eventbus = eventbus;
 
       /**
-       * The parsed DocObjects.
-       * @type {DocObject[]}
-       * @private
-       */
-      this._docData = [];
-
-      /**
        * Stores an array of already processed class nodes.
        * @type {Array}
        * @private
        */
       this._processedClassNodes = [];
 
-      // If code is defined then treat it as an memory doc otherwise a file doc.
-      const doc = typeof code === 'string' ? new Docs.MemoryDoc(astNodeContainer.add(ast), ast, ast, pathResolver, [],
-       this._eventbus, code) : new Docs.FileDoc(astNodeContainer.add(ast), ast, ast, pathResolver, [], this._eventbus);
+      // Gets the current global / main plugin DocDB counter doc ID then increment it.
+      const docID = eventbus.triggerSync('tjsdoc:data:docdb:current:id:increment:get');
 
-      // Push file or memory doc.
-      this._docData.push(doc.value);
+      // If code is defined then treat it as an memory doc otherwise a file doc.
+      const doc = typeof code === 'string' ? new Docs.MemoryDoc(docID, ast, ast, pathResolver, [],
+       this._eventbus, code) : new Docs.FileDoc(docID, ast, ast, pathResolver, [], this._eventbus);
+
+      // Insert file or memory doc and destroy.
+      docDB.insert(doc.destroy());
 
       /**
        * Store the docID for the memory / file and add it to all children doc data as `__moduleID__`.
        * @type {number}
        */
-      this._moduleID = doc.value.__docId__;
+      this._moduleID = docID;
 
       this._inspectExportDefaultDeclaration();
       this._inspectExportNamedDeclaration();
@@ -93,9 +89,7 @@ export class DocFactory
       // AST does not have a body or children nodes so only comments are potentially present.
       if (ast.program.body.length === 0 && ast.program.innerComments)
       {
-         const docData = this._traverseComments(ast, null, ast.program.innerComments);
-
-         this._docData.push(...docData);
+         this._traverseComments(ast, null, ast.program.innerComments);
       }
    }
 
@@ -184,8 +178,8 @@ export class DocFactory
       if (!Clazz) { return null; }
       if (!node.type) { node.type = type; }
 
-      return new Clazz(this._astNodeContainer.add(node), this._moduleID, this._ast, node, this._pathResolver, tags,
-       this._eventbus);
+      return new Clazz(this._eventbus.triggerSync('tjsdoc:data:docdb:current:id:increment:get'), this._moduleID,
+       this._ast, node, this._pathResolver, tags, this._eventbus);
    }
 
    /**
@@ -508,16 +502,6 @@ export class DocFactory
       innerNode[s_ALREADY] = true;
 
       return { type: innerType, node: innerNode };
-   }
-
-   /**
-    * Gets the generated doc data.
-    *
-    * @returns {DocObject[]}
-    */
-   get docData()
-   {
-      return [...this._docData];
    }
 
    /**
@@ -930,16 +914,12 @@ export class DocFactory
          }
       }
 
-      let docData = this._traverseComments(parentNode, node, node.leadingComments);
-
-      this._docData.push(...docData);
+      this._traverseComments(parentNode, node, node.leadingComments);
 
       // for trailing comments. traverse with only last node, because prevent duplication of trailing comments.
       if (node.trailingComments && isLastNodeInParent)
       {
-         docData = this._traverseComments(parentNode, null, node.trailingComments);
-
-         this._docData.push(...docData);
+         this._traverseComments(parentNode, null, node.trailingComments);
       }
    }
 
@@ -951,8 +931,6 @@ export class DocFactory
     * @param {?ASTNode} node - target node.
     *
     * @param {ASTNode[]} comments - comment nodes.
-    *
-    * @returns {DocObject[]} created doc objects.
     *
     * @private
     */
@@ -991,7 +969,6 @@ export class DocFactory
          comments = [{ type: 'CommentBlock', value: '* @_undocument' }];
       }
 
-      const docData = [];
       const lastComment = comments[comments.length - 1];
 
       for (const comment of comments)
@@ -1013,10 +990,9 @@ export class DocFactory
             doc = this._createDoc(virtualNode, tags);
          }
 
-         if (doc) { docData.push(doc.value); }
+         // Insert doc and destroy.
+         if (doc) { this._docDB.insert(doc.destroy()); }
       }
-
-      return docData;
    }
 
    /**
@@ -1055,7 +1031,7 @@ export function onPluginLoad(ev)
 {
    const eventbus = ev.eventbus;
 
-   eventbus.on('tjsdoc:system:doc:factory:code:create', ({ ast, astNodeContainer, code, filePath } = {}) =>
+   eventbus.on('tjsdoc:system:doc:factory:code:create', ({ ast, docDB, code, filePath } = {}) =>
    {
       if (typeof ast !== 'object')
       {
@@ -1074,10 +1050,10 @@ export function onPluginLoad(ev)
          throw new TypeError(`'tjsdoc:system:doc:factory:code:create' - Could not create 'pathResolver'.`);
       }
 
-      return new DocFactory(ast, astNodeContainer, pathResolver, eventbus, code);
+      return new DocFactory(ast, docDB, pathResolver, eventbus, code);
    });
 
-   eventbus.on('tjsdoc:system:doc:factory:file:create', ({ ast, astNodeContainer, filePath } = {}) =>
+   eventbus.on('tjsdoc:system:doc:factory:file:create', ({ ast, docDB, filePath } = {}) =>
    {
       if (typeof ast !== 'object')
       {
@@ -1096,6 +1072,6 @@ export function onPluginLoad(ev)
          throw new TypeError(`'tjsdoc:system:doc:factory:file:create' - Could not create 'pathResolver'.`);
       }
 
-      return new DocFactory(ast, astNodeContainer, pathResolver, eventbus);
+      return new DocFactory(ast, docDB, pathResolver, eventbus);
    });
 }
