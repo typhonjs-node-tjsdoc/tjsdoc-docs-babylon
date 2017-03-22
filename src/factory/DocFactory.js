@@ -74,8 +74,8 @@ export class DocFactory
       const doc = typeof code === 'string' ? new Docs.MemoryDoc(docID, ast, ast, pathResolver, [],
        this._eventbus, code) : new Docs.FileDoc(docID, ast, ast, pathResolver, [], this._eventbus);
 
-      // Insert file or memory doc and destroy.
-      docDB.insert(doc.destroy());
+      // Insert file or memory doc.
+      this._docDB.insertDocObject(doc);
 
       /**
        * Store the docID for the memory / file and add it to all children doc data as `__moduleID__`.
@@ -991,7 +991,7 @@ export class DocFactory
          }
 
          // Insert doc and destroy.
-         if (doc) { this._docDB.insert(doc.destroy()); }
+         if (doc) { this._docDB.insertDocObject(doc); }
       }
    }
 

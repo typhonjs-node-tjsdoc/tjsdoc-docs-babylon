@@ -69,21 +69,22 @@ export class TestDocFactory
       // Gets the current global / main plugin DocDB counter doc ID then increment it.
       const docID = eventbus.triggerSync('tjsdoc:data:docdb:current:id:increment:get');
 
-      // Test file doc
-      const doc = new Docs.TestFileDoc(docID, ast, ast, pathResolver, [], this._eventbus);
-
-      // Insert test file doc and destroy.
-      this._docDB.insert(doc.destroy());
-
       /**
        * The associated ES file / module ID.
        * @type {number}
        */
       this._moduleID = docID;
+
+      // Test file doc
+      const doc = new Docs.TestFileDoc(docID, ast, ast, pathResolver, [], this._eventbus);
+
+      // Insert test file doc.
+      this._docDB.insertDocObject(doc);
    }
 
    /**
-    * get unique id.
+    * Gets a unique id.
+    *
     * @returns {number} unique id.
     * @private
     */
@@ -149,7 +150,7 @@ export class TestDocFactory
        this._moduleID, this._ast, expression, this._pathResolver, tags, this._eventbus);
 
       // Insert test doc and destroy.
-      this._docDB.insert(testDoc.destroy());
+      this._docDB.insertDocObject(testDoc);
    }
 }
 
