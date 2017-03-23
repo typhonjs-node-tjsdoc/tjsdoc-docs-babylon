@@ -270,7 +270,9 @@ export class DocFactory
       }
       else
       {
-         this._eventbus.trigger('log:warn', 'this class property is not in class', node);
+         const sanitizedNode = this._eventbus.triggerSync('tjsdoc:system:ast:node:sanitize:children', node);
+
+         this._eventbus.trigger('log:warn', 'This class property is not in class:', JSON.stringify(sanitizedNode));
 
          return { type: null, node: null };
       }
@@ -386,7 +388,9 @@ export class DocFactory
       }
       else
       {
-         this._eventbus.trigger('log:warn', 'this method is not in class', node);
+         const sanitizedNode = this._eventbus.triggerSync('tjsdoc:system:ast:node:sanitize:children', node);
+
+         this._eventbus.trigger('log:warn', 'This method is not in class:', JSON.stringify(sanitizedNode));
 
          return { type: null, node: null };
       }
@@ -619,7 +623,7 @@ export class DocFactory
                break;
 
             default:
-               this._eventbus.trigger('log:warn', `unknown export declaration type. type = "${
+               this._eventbus.trigger('log:warn', `Unknown export declaration type. type = "${
                 exportNode.declaration.type}"`);
                break;
          }
