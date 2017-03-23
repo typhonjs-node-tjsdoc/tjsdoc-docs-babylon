@@ -541,13 +541,18 @@ export default class ASTUtil
    }
 
    /**
-    * Removes all unnecessary children nodes leaving comments and range data.
+    * Removes all unnecessary children nodes leaving comments and range data. A new object is created and data
+    * copied before being returned.
     *
     * @param {ASTNode} node - target node.
+    *
+    * @returns {ASTNode} - sanitized AST node.
     */
    sanitizeChildren(node)
    {
       if (!node) { return; }
+
+      const newNode = {};
 
       for (const prop in node)
       {
@@ -559,11 +564,11 @@ export default class ASTUtil
             case 'start':
             case 'trailingComments':
             case 'type':
-               continue;
-
-            default:
-               delete node[prop];
+               newNode[prop] = node[prop];
+               break;
          }
       }
+
+      return JSON.parse(JSON.stringify(newNode));
    }
 }
