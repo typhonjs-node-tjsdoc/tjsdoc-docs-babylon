@@ -282,7 +282,17 @@ export class DocFactory
    }
 
    /**
-    * Decide doc object type from expression statement node.
+    * Decide doc object type from expression statement node. In particular class membership or `this.x` statements
+    * are parsed.
+    *
+    * @example
+    * class Test
+    * {
+    *    constructor()
+    *    {
+    *       this.pickedUp = true; // Parses class membership.
+    *    }
+    * }
     *
     * @param {ASTNode} node - target node that is expression statement node.
     *
@@ -291,55 +301,26 @@ export class DocFactory
     */
    _decideExpressionStatementType(node)
    {
-      const isTop = this._isTopDepthInBody(node, this._ast.program.body);
+      if (!node.expression.right) { return { type: null, node: null }; }
 
       Reflect.defineProperty(node.expression, 'parent', { value: node });
 
-      node = node.expression;
-      node[s_ALREADY] = true;
-
-      let innerType;
-
-      if (!node.right) { return { type: null, node: null }; }
-
-      switch (node.right.type)
+      if (node.expression.left.type === 'MemberExpression' && node.expression.left.object.type === 'ThisExpression')
       {
-         case 'FunctionExpression':
-            innerType = 'Function';
-            break;
+         const classNode = this._findUp(node.expression, ['ClassExpression', 'ClassDeclaration']);
 
-         case 'ClassExpression':
-            innerType = 'Class';
-            break;
+         // No class node was found in an upward search. In certain situations this could be a function meant to
+         // be applied with a particular context for `this`. However, it's not considered a member doc node.
+         if (classNode === null) { return { type: null, node: null }; }
 
-         default:
-            if (node.left.type === 'MemberExpression' && node.left.object.type === 'ThisExpression')
-            {
-               const classNode = this._findUp(node, ['ClassExpression', 'ClassDeclaration']);
+         node.expression[s_ALREADY] = true;
 
-               // No class node was found in an upward search. In certain situations this could be a function meant to
-               // be applied with a particular context for `this`. However, it's not considered a member doc node.
-               if (classNode === null) { return { type: null, node: null }; }
-
-               return { type: 'Member', node };
-            }
-            else
-            {
-               return { type: null, node: null };
-            }
+         return { type: 'Member', node: node.expression };
       }
-
-      if (!isTop) { return { type: null, node: null }; }
-
-      const innerNode = node.right;
-
-      innerNode.id = this._copy(node.left.id || node.left.property);
-
-      Reflect.defineProperty(innerNode, 'parent', { value: node });
-
-      innerNode[s_ALREADY] = true;
-
-      return { type: innerType, node: innerNode };
+      else
+      {
+         return { type: null, node: null };
+      }
    }
 
    /**
