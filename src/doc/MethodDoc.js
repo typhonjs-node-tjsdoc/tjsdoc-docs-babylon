@@ -68,7 +68,12 @@ export default class MethodDoc extends AbstractMethodDoc
 
       this._ensureApplied('_$kind');
 
-      if (['set', 'get'].includes(this._value.kind)) { return; }
+      switch (this._value.kind)
+      {
+         case 'get':
+         case 'set':
+            return;
+      }
 
       this._value.params = this._eventbus.triggerSync('tjsdoc:system:parser:param:guess', this._node.params);
    }
@@ -85,7 +90,13 @@ export default class MethodDoc extends AbstractMethodDoc
 
       this._ensureApplied('_$kind');
 
-      if (['constructor', 'set', 'get'].includes(this._value.kind)) { return; }
+      switch (this._value.kind)
+      {
+         case 'constructor':
+         case 'get':
+         case 'set':
+            return;
+      }
 
       const result = this._eventbus.triggerSync('tjsdoc:system:parser:param:return:guess', this._node.body);
 

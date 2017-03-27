@@ -843,9 +843,12 @@ export class DocFactory
 
       const parentNode = node.parent;
 
-      if (['ExportDefaultDeclaration', 'ExportNamedDeclaration'].includes(parentNode.type))
+      switch (parentNode.type)
       {
-         node = parentNode;
+         case 'ExportDefaultDeclaration':
+         case 'ExportNamedDeclaration':
+            node = parentNode;
+            break;
       }
 
       for (const _node of body)
@@ -876,16 +879,19 @@ export class DocFactory
       Reflect.defineProperty(node, 'parent', { value: parentNode });
 
       // Unwrap export declaration
-      if (['ExportDefaultDeclaration', 'ExportNamedDeclaration'].includes(node.type))
+      switch (node.type)
       {
-         parentNode = node;
-         node = this._unwrapExportDeclaration(node);
+         case 'ExportDefaultDeclaration':
+         case 'ExportNamedDeclaration':
+            parentNode = node;
+            node = this._unwrapExportDeclaration(node);
 
-         if (!node) { return; }
+            if (!node) { return; }
 
-         node[s_ALREADY] = true;
+            node[s_ALREADY] = true;
 
-         Reflect.defineProperty(node, 'parent', { value: parentNode });
+            Reflect.defineProperty(node, 'parent', { value: parentNode });
+            break;
       }
 
       // If node has decorators leading comments are attached to decorators.

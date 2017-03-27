@@ -126,8 +126,19 @@ export class TestDocFactory
 
       if (expression.type !== 'CallExpression') { return; }
 
-      if (!['describe', 'it', 'context', 'suite', 'test'].includes(expression.callee.name)) { return; }
+      switch (expression.callee.name)
+      {
+         case 'describe':
+         case 'it':
+         case 'context':
+         case 'suite':
+         case 'test':
+            break;
 
+         default:
+            return;
+      }
+      
       expression[s_ALREADY] = true;
 
       Reflect.defineProperty(expression, 'parent', { value: node });
