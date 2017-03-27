@@ -459,13 +459,13 @@ export class DocFactory
    {
       if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
 
-      let innerType = null;
-      let innerNode = null;
+      if (!node.declarations[0].init) { return { type: null, node: null }; }
 
-      if (!node.declarations[0].init) { return { type: innerType, node: innerNode }; }
+      let innerType = null;
 
       switch (node.declarations[0].init.type)
       {
+         case 'ArrowFunctionExpression':
          case 'FunctionExpression':
             innerType = 'Function';
             break;
@@ -474,16 +474,11 @@ export class DocFactory
             innerType = 'Class';
             break;
 
-         case 'ArrowFunctionExpression':
-            innerType = 'Function';
-            break;
-
          default:
             return { type: 'Variable', node };
       }
 
-      innerNode = node.declarations[0].init;
-      innerNode.id = this._copy(node.declarations[0].id);
+      const innerNode = node.declarations[0].init;
 
       Reflect.defineProperty(innerNode, 'parent', { value: node });
 
