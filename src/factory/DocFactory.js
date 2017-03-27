@@ -198,7 +198,12 @@ export class DocFactory
    }
 
    /**
-    * Decide doc object type from assignment node.
+    * Decide doc object type from `AssignmentExpression` node.
+    *
+    * @example
+    * export default functionName = function() {}
+    * export default functionName = () => {}
+    * export default ClassName = class {}
     *
     * @param {ASTNode} node - target node that is assignment node.
     *
@@ -210,10 +215,10 @@ export class DocFactory
       if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
 
       let innerType;
-      let innerNode;
 
       switch (node.right.type)
       {
+         case 'ArrowFunctionExpression':
          case 'FunctionExpression':
             innerType = 'Function';
             break;
@@ -226,9 +231,7 @@ export class DocFactory
             return { type: 'Assignment', node };
       }
 
-      /* eslint-disable prefer-const */
-      innerNode = node.right;
-      innerNode.id = this._copy(node.left.id || node.left.property);
+      const innerNode = node.right;
 
       Reflect.defineProperty(innerNode, 'parent', { value: node });
 
@@ -896,7 +899,7 @@ export class DocFactory
 
       Reflect.defineProperty(node, 'parent', { value: parentNode });
 
-      // unwrap export declaration
+      // Unwrap export declaration
       if (['ExportDefaultDeclaration', 'ExportNamedDeclaration'].includes(node.type))
       {
          parentNode = node;
@@ -909,7 +912,7 @@ export class DocFactory
          Reflect.defineProperty(node, 'parent', { value: parentNode });
       }
 
-      // if node has decorators, leading comments is attached to decorators.
+      // If node has decorators leading comments are attached to decorators.
       if (node.decorators && node.decorators[0].leadingComments)
       {
          if (!node.leadingComments || !node.leadingComments.length)
@@ -920,7 +923,7 @@ export class DocFactory
 
       this._traverseComments(parentNode, node, node.leadingComments);
 
-      // for trailing comments. traverse with only last node, because prevent duplication of trailing comments.
+      // For trailing comments traverse with only last node preventing duplication of trailing comments.
       if (node.trailingComments && isLastNodeInParent)
       {
          this._traverseComments(parentNode, null, node.trailingComments);
