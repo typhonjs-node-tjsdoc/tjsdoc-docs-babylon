@@ -86,6 +86,24 @@ export default class ClassDoc extends AbstractClassDoc
    /** Take out self name from self node */
    _$name()
    {
+      // Handle case when parent node is `AssignmentExpression` and this doc is an `ClassExpression`.
+      if (this._node.parent.type === 'AssignmentExpression' && this._node.type === 'ClassExpression')
+      {
+         const assignmentNode = this._node.parent;
+
+         switch (assignmentNode.left.type)
+         {
+            case 'Identifier':
+               this._value.name = assignmentNode.left.name;
+               return;
+
+            case 'MemberExpression':
+               this._value.name = assignmentNode.left.property.name;
+               return;
+         }
+      }
+
+      // Derive name from `this._node`.
       if (this._node.id)
       {
          this._value.name = this._node.id.name;
