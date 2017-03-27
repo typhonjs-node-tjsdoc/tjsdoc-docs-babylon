@@ -295,7 +295,7 @@ export default class ASTUtil
             results.push(target.name);
             break;
          }
-         else
+         else // MemberExpression
          {
             results.push(target.property.name);
             target = target.object;
