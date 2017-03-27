@@ -23,21 +23,31 @@ export default class FunctionDoc extends AbstractFunctionDoc
    /** Take out self name from self node */
    _$name()
    {
-      // Handle case when parent node is `AssignmentExpression` and this doc is an `ArrowFunctionExpression` or
-      // `FunctionExpression`.
-      if (this._node.parent.type === 'AssignmentExpression' &&
-       (this._node.type === 'ArrowFunctionExpression' || this._node.type === 'FunctionExpression'))
+      // Provide special handling when this doc is an `ArrowFunctionExpression` or `FunctionExpression`.
+      if (this._node.type === 'ArrowFunctionExpression' || this._node.type === 'FunctionExpression')
       {
-         const assignmentNode = this._node.parent;
-
-         switch (assignmentNode.left.type)
+         // Handle case when parent node is `AssignmentExpression` or `VariableDeclaration`.
+         switch (this._node.parent.type)
          {
-            case 'Identifier':
-               this._value.name = assignmentNode.left.name;
-               return;
+            case 'AssignmentExpression':
+            {
+               const assignmentNode = this._node.parent;
 
-            case 'MemberExpression':
-               this._value.name = assignmentNode.left.property.name;
+               switch (assignmentNode.left.type)
+               {
+                  case 'Identifier':
+                     this._value.name = assignmentNode.left.name;
+                     return;
+
+                  case 'MemberExpression':
+                     this._value.name = assignmentNode.left.property.name;
+                     return;
+               }
+               break;
+            }
+
+            case 'VariableDeclaration':
+               this._value.name = this._node.parent.declarations[0].id.name;
                return;
          }
       }
