@@ -10,25 +10,25 @@ export default class MethodDoc extends AbstractMethodDoc
    /**
     * use async property of self node.
     */
-   _$async()
+   static _$async()
    {
       this._value.async = this._node.async;
    }
 
    /** use generator property of self node. */
-   _$generator()
+   static _$generator()
    {
       this._value.generator = this._node.generator;
    }
 
    /** use kind property of self node. */
-   _$kind()
+   static _$kind()
    {
       this._value.kind = this._node.kind;
    }
 
    /** take out memberof from parent class node */
-   _$memberof()
+   static _$memberof()
    {
       let memberof;
       let parent = this._node.parent;
@@ -46,7 +46,7 @@ export default class MethodDoc extends AbstractMethodDoc
    }
 
    /** take out self name from self node */
-   _$name()
+   static _$name()
    {
       if (this._node.computed)
       {
@@ -60,7 +60,7 @@ export default class MethodDoc extends AbstractMethodDoc
    }
 
    /** if @param is not exists, guess type of param by using self node. but ``get`` and ``set`` are not guessed. */
-   _$param()
+   static _$param()
    {
       super._$param();
 
@@ -82,7 +82,7 @@ export default class MethodDoc extends AbstractMethodDoc
     * if @return is not exists, guess type of return by using self node.
     * but ``constructor``, ``get`` and ``set``are not guessed.
     */
-   _$return()
+   static _$return()
    {
       super._$return();
 
@@ -109,7 +109,7 @@ export default class MethodDoc extends AbstractMethodDoc
    /**
     * decide `static`.
     */
-   _$static()
+   static _$static()
    {
       if ('static' in this._node)
       {
@@ -118,7 +118,7 @@ export default class MethodDoc extends AbstractMethodDoc
    }
 
    /** if @type is not exists, guess type by using self node. only ``get`` and ``set`` are guess. */
-   _$type()
+   static _$type()
    {
       super._$type();
 

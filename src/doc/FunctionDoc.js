@@ -9,19 +9,19 @@ export default class FunctionDoc extends AbstractFunctionDoc
    /**
     * Assign async property from self node.
     */
-   _$async()
+   static _$async()
    {
       this._value.async = this._node.async;
    }
 
    /** Assign generator property from self node */
-   _$generator()
+   static _$generator()
    {
       this._value.generator = this._node.generator;
    }
 
    /** Take out self name from self node */
-   _$name()
+   static _$name()
    {
       // Provide special handling when this doc is an `ArrowFunctionExpression` or `FunctionExpression`.
       if (this._node.type === 'ArrowFunctionExpression' || this._node.type === 'FunctionExpression')
@@ -73,7 +73,7 @@ export default class FunctionDoc extends AbstractFunctionDoc
    }
 
    /** If @param does not exist then guess type of param by using self node. */
-   _$param()
+   static _$param()
    {
       super._$param();
 
@@ -83,7 +83,7 @@ export default class FunctionDoc extends AbstractFunctionDoc
    }
 
    /** If @return does not exist then guess type of return by using self node. */
-   _$return()
+   static _$return()
    {
       super._$return();
 

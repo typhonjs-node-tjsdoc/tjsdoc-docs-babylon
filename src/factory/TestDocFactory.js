@@ -18,9 +18,13 @@ const s_ALREADY = Symbol('already');
 export class TestDocFactory
 {
    /**
+    * Test type. For now only `mocha` is supported.
+    * @type {string}
+    */
+   _type = void 0;
+
+   /**
     * create instance.
-    *
-    * @param {string}            type - Test type. For now only `mocha` is supported.
     *
     * @param {AST}               ast - AST of test code.
     *
@@ -30,16 +34,9 @@ export class TestDocFactory
     *
     * @param {EventProxy}        eventbus - An event proxy for the main eventbus.
     */
-   constructor(type, ast, docDB, pathResolver, eventbus)
+   static reset(ast, docDB, pathResolver, eventbus)
    {
-      if (typeof type !== 'string') { throw new TypeError(`'type' is not a 'string'.`); }
       if (typeof ast !== 'object') { throw new TypeError(`'ast' is not an 'object'.`); }
-
-      /**
-       * Test type. For now only `mocha` is supported.
-       * @type {string}
-       */
-      this._type = type;
 
       /**
        * AST of test code.
@@ -76,10 +73,30 @@ export class TestDocFactory
       this._moduleID = docID;
 
       // Test file doc
-      const doc = new Docs.TestFileDoc(docID, ast, ast, pathResolver, [], this._eventbus);
+      const doc = Docs.TestFileDoc.create(docID, ast, ast, pathResolver, [], this._eventbus);
 
       // Insert test file doc.
       this._docDB.insertDocObject(doc);
+   }
+
+   /**
+    * Returns the current AST set.
+    *
+    * @returns {AST}
+    */
+   static get ast()
+   {
+      return this._ast;
+   }
+
+   /**
+    * Returns the current file path set.
+    *
+    * @returns {string|undefined}
+    */
+   static get filePath()
+   {
+      return this._pathResolver ? this._pathResolver.filePath : void 0;
    }
 
    /**
@@ -101,7 +118,7 @@ export class TestDocFactory
     * @param {ASTNode} node - target node.
     * @param {ASTNode} parentNode - parent node of target node.
     */
-   push(node, parentNode)
+   static push(node, parentNode)
    {
       if (node[s_ALREADY]) { return; }
 
@@ -118,7 +135,7 @@ export class TestDocFactory
     * @param {ASTNode} node - target node.
     * @private
     */
-   _pushForMocha(node)
+   static _pushForMocha(node)
    {
       if (node.type !== 'ExpressionStatement') { return; }
 
@@ -138,7 +155,7 @@ export class TestDocFactory
          default:
             return;
       }
-      
+
       expression[s_ALREADY] = true;
 
       Reflect.defineProperty(expression, 'parent', { value: node });
@@ -152,12 +169,12 @@ export class TestDocFactory
          tags = this._eventbus.triggerSync('tjsdoc:system:parser:comment:parse', comment);
       }
 
-      const uniqueId = this.constructor._getUniqueId();
+      const uniqueId = this._getUniqueId();
 
       expression._tjsdocTestId = uniqueId;
       expression._tjsdocTestName = expression.callee.name + uniqueId;
 
-      const testDoc = new Docs.TestDoc(this._eventbus.triggerSync('tjsdoc:data:docdb:current:id:increment:get'),
+      const testDoc = Docs.TestDoc.create(this._eventbus.triggerSync('tjsdoc:data:docdb:current:id:increment:get'),
        this._moduleID, this._ast, expression, this._pathResolver, tags, this._eventbus);
 
       // Insert test doc and destroy.
@@ -170,34 +187,11 @@ export class TestDocFactory
  *
  * @param {PluginEvent} ev - The plugin event.
  */
-export function onPluginLoad(ev)
+export function onPreGenerate(ev)
 {
-   const eventbus = ev.eventbus;
-
-   eventbus.on('tjsdoc:system:doc:factory:test:create', ({ type, ast, docDB, filePath } = {}) =>
+   if (ev.data.config.test)
    {
-      if (typeof type !== 'string')
-      {
-         throw new TypeError(`'tjsdoc:system:doc:factory:test:create' - 'type' is not a 'string'.`);
-      }
-
-      if (typeof ast !== 'object')
-      {
-         throw new TypeError(`'tjsdoc:system:doc:factory:test:create' - 'ast' is not an 'object'.`);
-      }
-
-      if (typeof filePath !== 'string')
-      {
-         throw new TypeError(`'tjsdoc:system:doc:factory:test:create' - 'filePath' is not a 'string'.`);
-      }
-
-      const pathResolver = eventbus.triggerSync('tjsdoc:system:path:resolver:create', filePath);
-
-      if (typeof pathResolver !== 'object')
-      {
-         throw new TypeError(`'tjsdoc:system:doc:factory:test:create' - Could not create 'pathResolver'.`);
-      }
-
-      return new TestDocFactory(type, ast, docDB, pathResolver, eventbus);
-   });
+      TestDocFactory._type = ev.data.config.test.type;
+      ev.eventbus.on('tjsdoc:system:doc:factory:test:get', () => TestDocFactory);
+   }
 }

@@ -6,7 +6,7 @@ import AbstractClassDoc from 'tjsdoc-docs-common/src/doc/abstract/AbstractClassD
 export default class ClassDoc extends AbstractClassDoc
 {
    /** Support for @extends and direct ES module inheritance. */
-   _$extends()
+   static _$extends()
    {
       const values = this._findAllTagValues(['@extends']);
 
@@ -84,7 +84,7 @@ export default class ClassDoc extends AbstractClassDoc
    }
 
    /** Take out self name from self node */
-   _$name()
+   static _$name()
    {
       // Provide special handling when this doc is a `ClassExpression`.
       if (this._node.type === 'ClassExpression')

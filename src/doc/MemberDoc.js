@@ -9,13 +9,13 @@ import MethodDoc           from './MethodDoc.js';
 export default class MemberDoc extends AbstractMemberDoc
 {
    /** Borrow {@link MethodDoc#@_memberof} */
-   _$memberof()
+   static _$memberof()
    {
-      Reflect.apply(MethodDoc.prototype._$memberof, this, []);
+      Reflect.apply(MethodDoc._$memberof, this, []);
    }
 
    /** Take out self name from self node */
-   _$name()
+   static _$name()
    {
       let name;
 
@@ -33,7 +33,7 @@ export default class MemberDoc extends AbstractMemberDoc
    }
 
    /** Assign static property */
-   _$static()
+   static _$static()
    {
       let parent = this._node.parent;
 
@@ -49,7 +49,7 @@ export default class MemberDoc extends AbstractMemberDoc
    }
 
    /** If @type does not exist then guess type by using self node */
-   _$type()
+   static _$type()
    {
       super._$type();
 

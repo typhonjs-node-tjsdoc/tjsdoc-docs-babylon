@@ -8,13 +8,13 @@ import MethodDoc                 from './MethodDoc.js';
 export default class ClassPropertyDoc extends AbstractClassPropertyDoc
 {
    /** Borrow {@link MethodDoc#@_memberof} */
-   _$memberof()
+   static _$memberof()
    {
-      Reflect.apply(MethodDoc.prototype._$memberof, this, []);
+      Reflect.apply(MethodDoc._$memberof, this, []);
    }
 
    /** Take out self name from self node */
-   _$name()
+   static _$name()
    {
       this._value.name = this._node.key.name;
    }
@@ -22,7 +22,7 @@ export default class ClassPropertyDoc extends AbstractClassPropertyDoc
    /**
     * Decide if `static`.
     */
-   _$static()
+   static _$static()
    {
       if ('static' in this._node)
       {
@@ -31,7 +31,7 @@ export default class ClassPropertyDoc extends AbstractClassPropertyDoc
    }
 
    /** If @type does not exist then guess type by using self node */
-   _$type()
+   static _$type()
    {
       super._$type();
 

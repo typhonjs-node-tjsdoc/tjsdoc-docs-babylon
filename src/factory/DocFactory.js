@@ -30,7 +30,7 @@ export class DocFactory
     *
     * @param {String}            [code] - Designates that the ast is from an in memory source rather than a file.
     */
-   constructor(ast, docDB, pathResolver, eventbus, code = void 0)
+   static reset(ast, docDB, pathResolver, eventbus, code = void 0)
    {
       /**
        * AST of source code.
@@ -71,8 +71,8 @@ export class DocFactory
       const docID = eventbus.triggerSync('tjsdoc:data:docdb:current:id:increment:get');
 
       // If code is defined then treat it as an memory doc otherwise a file doc.
-      const doc = typeof code === 'string' ? new Docs.MemoryDoc(docID, ast, ast, pathResolver, [],
-       this._eventbus, code) : new Docs.FileDoc(docID, ast, ast, pathResolver, [], this._eventbus);
+      const doc = typeof code === 'string' ? Docs.MemoryDoc.create(docID, ast, ast, pathResolver, [],
+       this._eventbus, code) : Docs.FileDoc.create(docID, ast, ast, pathResolver, [], this._eventbus);
 
       // Insert file or memory doc.
       this._docDB.insertDocObject(doc);
@@ -83,8 +83,10 @@ export class DocFactory
        */
       this._moduleID = docID;
 
+//console.log('!! DocFactory - ctor - 0 - filepath: ' + pathResolver.filePath + '; ast: ' + JSON.stringify(ast));
       this._inspectExportDefaultDeclaration();
       this._inspectExportNamedDeclaration();
+//console.log('!! DocFactory - ctor - 1 - ast: ' + JSON.stringify(ast));
 
       // AST does not have a body or children nodes so only comments are potentially present.
       if (ast.program.body.length === 0 && ast.program.innerComments)
@@ -101,7 +103,7 @@ export class DocFactory
     * @return {Object} copied object.
     * @private
     */
-   _copy(obj)
+   static _copy(obj)
    {
       return JSON.parse(JSON.stringify(obj));
    }
@@ -117,7 +119,7 @@ export class DocFactory
     *
     * @private
     */
-   _createDoc(node, tags)
+   static _createDoc(node, tags)
    {
       const result = this._decideType(tags, node);
       const type = result.type;
@@ -178,7 +180,7 @@ export class DocFactory
       if (!Clazz) { return null; }
       if (!node.type) { node.type = type; }
 
-      return new Clazz(this._eventbus.triggerSync('tjsdoc:data:docdb:current:id:increment:get'), this._moduleID,
+      return Clazz.create(this._eventbus.triggerSync('tjsdoc:data:docdb:current:id:increment:get'), this._moduleID,
        this._ast, node, this._pathResolver, tags, this._eventbus);
    }
 
@@ -190,7 +192,7 @@ export class DocFactory
     * @returns {{type: string, node: ASTNode}} decided type.
     * @private
     */
-   _decideArrowFunctionExpressionType(node)
+   static _decideArrowFunctionExpressionType(node)
    {
       if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
 
@@ -210,7 +212,7 @@ export class DocFactory
     * @returns {{type: string, node: ASTNode}} decided type.
     * @private
     */
-   _decideAssignmentType(node)
+   static _decideAssignmentType(node)
    {
       if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
 
@@ -248,7 +250,7 @@ export class DocFactory
     * @returns {{type: string, node: ASTNode}} decided type.
     * @private
     */
-   _decideClassDeclarationType(node)
+   static _decideClassDeclarationType(node)
    {
       if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
 
@@ -263,7 +265,7 @@ export class DocFactory
     * @returns {{type: ?string, node: ?ASTNode}} decided type.
     * @private
     */
-   _decideClassPropertyType(node)
+   static _decideClassPropertyType(node)
    {
       const classNode = this._findUp(node, ['ClassDeclaration', 'ClassExpression']);
 
@@ -299,7 +301,7 @@ export class DocFactory
     * @returns {{type: ?string, node: ?ASTNode}} decided type.
     * @private
     */
-   _decideExpressionStatementType(node)
+   static _decideExpressionStatementType(node)
    {
       if (!node.expression.right) { return { type: null, node: null }; }
 
@@ -331,7 +333,7 @@ export class DocFactory
     * @returns {{type: string, node: ASTNode}} decided type.
     * @private
     */
-   _decideFunctionDeclarationType(node)
+   static _decideFunctionDeclarationType(node)
    {
       if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
 
@@ -346,7 +348,7 @@ export class DocFactory
     * @returns {{type: string, node: ASTNode}} decided type.
     * @private
     */
-   _decideFunctionExpressionType(node)
+   static _decideFunctionExpressionType(node)
    {
       if (!node.async) { return { type: null, node: null }; }
       if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
@@ -362,7 +364,7 @@ export class DocFactory
     * @returns {{type: ?string, node: ?ASTNode}} decided type.
     * @private
     */
-   _decideMethodDefinitionType(node)
+   static _decideMethodDefinitionType(node)
    {
       const classNode = this._findUp(node, ['ClassDeclaration', 'ClassExpression']);
 
@@ -390,7 +392,7 @@ export class DocFactory
     * @returns {{type: ?string, node: ?ASTNode}} decided type.
     * @private
     */
-   _decideType(tags, node)
+   static _decideType(tags, node)
    {
       let type = null;
 
@@ -455,7 +457,7 @@ export class DocFactory
     * @returns {{type: string, node: ASTNode}} decided type.
     * @private
     */
-   _decideVariableType(node)
+   static _decideVariableType(node)
    {
       if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
 
@@ -488,6 +490,24 @@ export class DocFactory
    }
 
    /**
+    * Returns the current AST set.
+    * @returns {AST}
+    */
+   static get ast()
+   {
+      return this._ast;
+   }
+
+   /**
+    * Returns the current file path set.
+    * @returns {string|undefined}
+    */
+   static get filePath()
+   {
+      return this._pathResolver ? this._pathResolver.filePath : void 0;
+   }
+
+   /**
     * Find node while traversing up the parent tree.
     *
     * @param {ASTNode} node - start node.
@@ -497,7 +517,7 @@ export class DocFactory
     * @returns {ASTNode|null} found first node.
     * @private
     */
-   _findUp(node, types)
+   static _findUp(node, types)
    {
       let parent = node.parent;
 
@@ -539,7 +559,7 @@ export class DocFactory
     * @private
     * @todo support function export.
     */
-   _inspectExportDefaultDeclaration()
+   static _inspectExportDefaultDeclaration()
    {
       const pseudoExportNodes = [];
 
@@ -690,7 +710,7 @@ export class DocFactory
     * @private
     * @todo support function export.
     */
-   _inspectExportNamedDeclaration()
+   static _inspectExportNamedDeclaration()
    {
       const pseudoExportNodes = [];
 
@@ -815,7 +835,7 @@ export class DocFactory
     * @returns {boolean} if true, the node is last in parent.
     * @private
     */
-   _isLastNodeInParent(node, parentNode)
+   static _isLastNodeInParent(node, parentNode)
    {
       if (parentNode && parentNode.body)
       {
@@ -836,7 +856,7 @@ export class DocFactory
     * @returns {boolean} if true, the node is top in body.
     * @private
     */
-   _isTopDepthInBody(node, body)
+   static _isTopDepthInBody(node, body)
    {
       if (!body) { return false; }
       if (!Array.isArray(body)) { return false; }
@@ -866,7 +886,7 @@ export class DocFactory
     *
     * @param {ASTNode} parentNode - parent node of target node.
     */
-   push(node, parentNode)
+   static push(node, parentNode)
    {
       if (node === this._ast) { return; }
 
@@ -923,7 +943,7 @@ export class DocFactory
     *
     * @private
     */
-   _traverseComments(parentNode, node, comments)
+   static _traverseComments(parentNode, node, comments)
    {
       if (!node)
       {
@@ -992,7 +1012,7 @@ export class DocFactory
     * @returns {ASTNode|null} unwrapped child node of exported node.
     * @private
     */
-   _unwrapExportDeclaration(node)
+   static _unwrapExportDeclaration(node)
    {
       // e.g. `export A from './A.js'` has not declaration
       if (!node.declaration) { return null; }
@@ -1016,51 +1036,7 @@ export class DocFactory
  *
  * @param {PluginEvent} ev - The plugin event.
  */
-export function onPluginLoad(ev)
+export function onPreGenerate(ev)
 {
-   const eventbus = ev.eventbus;
-
-   eventbus.on('tjsdoc:system:doc:factory:code:create', ({ ast, docDB, code, filePath } = {}) =>
-   {
-      if (typeof ast !== 'object')
-      {
-         throw new TypeError(`'tjsdoc:system:doc:factory:code:create' - 'ast' is not an 'object'.`);
-      }
-
-      if (typeof code !== 'string')
-      {
-         throw new TypeError(`'tjsdoc:system:doc:factory:code:create' - 'code' is not a 'string'.`);
-      }
-
-      const pathResolver = eventbus.triggerSync('tjsdoc:system:path:resolver:create', filePath);
-
-      if (typeof pathResolver !== 'object')
-      {
-         throw new TypeError(`'tjsdoc:system:doc:factory:code:create' - Could not create 'pathResolver'.`);
-      }
-
-      return new DocFactory(ast, docDB, pathResolver, eventbus, code);
-   });
-
-   eventbus.on('tjsdoc:system:doc:factory:file:create', ({ ast, docDB, filePath } = {}) =>
-   {
-      if (typeof ast !== 'object')
-      {
-         throw new TypeError(`'tjsdoc:system:doc:factory:file:create' - 'ast' is not an 'object'.`);
-      }
-
-      if (typeof filePath !== 'string')
-      {
-         throw new TypeError(`'tjsdoc:system:doc:factory:file:create' - 'filePath' is not a 'string'.`);
-      }
-
-      const pathResolver = eventbus.triggerSync('tjsdoc:system:path:resolver:create', filePath);
-
-      if (typeof pathResolver !== 'object')
-      {
-         throw new TypeError(`'tjsdoc:system:doc:factory:file:create' - Could not create 'pathResolver'.`);
-      }
-
-      return new DocFactory(ast, docDB, pathResolver, eventbus);
-   });
+   ev.eventbus.on('tjsdoc:system:doc:factory:get', () => DocFactory);
 }

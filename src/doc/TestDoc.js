@@ -6,7 +6,7 @@ import AbstractTestDoc  from 'tjsdoc-docs-common/src/doc/abstract/AbstractTestDo
 export default class TestDoc extends AbstractTestDoc
 {
    /** set describe by using test node arguments. */
-   _$desc()
+   static _$desc()
    {
       super._$desc();
 
@@ -16,7 +16,7 @@ export default class TestDoc extends AbstractTestDoc
    }
 
    /** use name property of self node. */
-   _$kind()
+   static _$kind()
    {
       switch (this._node.callee.name)
       {
@@ -37,7 +37,7 @@ export default class TestDoc extends AbstractTestDoc
    }
 
    /** set memberof to use parent test nod and file path. */
-   _$memberof()
+   static _$memberof()
    {
       const chain = [];
       let parent = this._node.parent;

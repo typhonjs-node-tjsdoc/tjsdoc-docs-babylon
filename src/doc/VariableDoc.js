@@ -6,7 +6,7 @@ import AbstractVariableDoc from 'tjsdoc-docs-common/src/doc/abstract/AbstractVar
 export default class VariableDoc extends AbstractVariableDoc
 {
    /** set name by using self node. */
-   _$name()
+   static _$name()
    {
       const type = this._node.declarations[0].id.type;
 
@@ -34,7 +34,7 @@ export default class VariableDoc extends AbstractVariableDoc
    }
 
    /** if @type is not exists, guess type by using self node. */
-   _$type()
+   static _$type()
    {
       super._$type();
 

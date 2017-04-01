@@ -6,7 +6,7 @@ import AbstractTypedefDoc  from 'tjsdoc-docs-common/src/doc/abstract/AbstractTyp
 export default class TypedefDoc extends AbstractTypedefDoc
 {
    /** set memberof by using file path. */
-   _$memberof()
+   static _$memberof()
    {
       let memberof;
       let parent = this._node.parent;

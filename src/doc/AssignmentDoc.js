@@ -8,7 +8,7 @@ export default class AssignmentDoc extends AbstractAssignmentDoc
    /**
     * Take out self name from self node.
     */
-   _$name()
+   static _$name()
    {
       this._value.name = this._eventbus.triggerSync('tjsdoc:system:ast:member:expression:flatten',
        this._node.left).replace(/^this\./, '');
