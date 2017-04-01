@@ -1,11 +1,10 @@
 import babelGenerator      from 'babel-generator';
-
-import AbstractMethodDoc   from 'tjsdoc-docs-common/src/doc/abstract/AbstractMethodDoc.js';
+import ClassMethodDocBase  from 'tjsdoc-docs-common/src/doc/base/ClassMethodDocBase';
 
 /**
  * Doc Class from Method Definition AST node.
  */
-export default class MethodDoc extends AbstractMethodDoc
+export default class ClassMethodDoc extends ClassMethodDocBase
 {
    /**
     * use async property of self node.

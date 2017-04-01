@@ -1,9 +1,9 @@
-import AbstractTestDoc  from 'tjsdoc-docs-common/src/doc/abstract/AbstractTestDoc.js';
+import TestDocBase  from 'tjsdoc-docs-common/src/doc/base/TestDocBase.js';
 
 /**
  * Doc Class from test code file.
  */
-export default class TestDoc extends AbstractTestDoc
+export default class TestDoc extends TestDocBase
 {
    /** set describe by using test node arguments. */
    static _$desc()

@@ -1,9 +1,9 @@
-import AbstractVariableDoc from 'tjsdoc-docs-common/src/doc/abstract/AbstractVariableDoc.js';
+import ModuleVariableDocBase  from 'tjsdoc-docs-common/src/doc/base/ModuleVariableDocBase.js';
 
 /**
  * Doc Class from Variable Declaration AST node.
  */
-export default class VariableDoc extends AbstractVariableDoc
+export default class ModuleVariableDoc extends ModuleVariableDocBase
 {
    /** set name by using self node. */
    static _$name()

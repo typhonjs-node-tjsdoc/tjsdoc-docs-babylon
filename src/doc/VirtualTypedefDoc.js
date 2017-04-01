@@ -1,9 +1,9 @@
-import AbstractTypedefDoc  from 'tjsdoc-docs-common/src/doc/abstract/AbstractTypedefDoc.js';
+import VirtualTypedefDocBase  from 'tjsdoc-docs-common/src/doc/base/VirtualTypedefDocBase.js';
 
 /**
  * Doc class for virtual comment node of typedef.
  */
-export default class TypedefDoc extends AbstractTypedefDoc
+export default class VirtualTypedefDoc extends VirtualTypedefDocBase
 {
    /** set memberof by using file path. */
    static _$memberof()

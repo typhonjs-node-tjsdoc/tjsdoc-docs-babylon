@@ -1,9 +1,9 @@
-import AbstractAssignmentDoc  from 'tjsdoc-docs-common/src/doc/abstract/AbstractAssignmentDoc.js';
+import ModuleAssignmentDocBase   from 'tjsdoc-docs-common/src/doc/base/ModuleAssignmentDocBase.js';
 
 /**
  * Doc Class for Assignment AST node.
  */
-export default class AssignmentDoc extends AbstractAssignmentDoc
+export default class ModuleAssignmentDoc extends ModuleAssignmentDocBase
 {
    /**
     * Take out self name from self node.

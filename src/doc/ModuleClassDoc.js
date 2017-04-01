@@ -1,9 +1,9 @@
-import AbstractClassDoc from 'tjsdoc-docs-common/src/doc/abstract/AbstractClassDoc.js';
+import ModuleClassDocBase  from 'tjsdoc-docs-common/src/doc/base/ModuleClassDocBase.js';
 
 /**
  * Doc Class from Class Declaration AST node.
  */
-export default class ClassDoc extends AbstractClassDoc
+export default class ModuleClassDoc extends ModuleClassDocBase
 {
    /** Support for @extends and direct ES module inheritance. */
    static _$extends()

@@ -1,10 +1,10 @@
-import babelGenerator      from 'babel-generator';
-import AbstractFunctionDoc from 'tjsdoc-docs-common/src/doc/abstract/AbstractFunctionDoc.js';
+import babelGenerator         from 'babel-generator';
+import ModuleFunctionDocBase  from 'tjsdoc-docs-common/src/doc/base/ModuleFunctionDocBase.js';
 
 /**
  * Doc Class from Function declaration AST node.
  */
-export default class FunctionDoc extends AbstractFunctionDoc
+export default class ModuleFunctionDoc extends ModuleFunctionDocBase
 {
    /**
     * Assign async property from self node.

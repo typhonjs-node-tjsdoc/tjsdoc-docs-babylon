@@ -128,7 +128,7 @@ export class DocFactory
 
       if (!type) { return null; }
 
-      if (type === 'Class')
+      if (type === 'ModuleClass')
       {
          this._processedClassNodes.push(node);
       }
@@ -137,40 +137,41 @@ export class DocFactory
 
       switch (type)
       {
-         case 'Assignment':
-            Clazz = Docs.AssignmentDoc;
+
+         case 'ClassMember':
+            Clazz = Docs.ClassMemberDoc;
             break;
 
-         case 'Class':
-            Clazz = Docs.ClassDoc;
+         case 'ClassMethod':
+            Clazz = Docs.ClassMethodDoc;
             break;
 
          case 'ClassProperty':
             Clazz = Docs.ClassPropertyDoc;
             break;
 
-         case 'External':
-            Clazz = Docs.ExternalDoc;
+         case 'ModuleAssignment':
+            Clazz = Docs.ModuleAssignmentDoc;
             break;
 
-         case 'Function':
-            Clazz = Docs.FunctionDoc;
+         case 'ModuleClass':
+            Clazz = Docs.ModuleClassDoc;
             break;
 
-         case 'Member':
-            Clazz = Docs.MemberDoc;
+         case 'ModuleFunction':
+            Clazz = Docs.ModuleFunctionDoc;
             break;
 
-         case 'Method':
-            Clazz = Docs.MethodDoc;
+         case 'ModuleVariable':
+            Clazz = Docs.ModuleVariableDoc;
             break;
 
-         case 'Typedef':
-            Clazz = Docs.TypedefDoc;
+         case 'VirtualExternal':
+            Clazz = Docs.VirtualExternalDoc;
             break;
 
-         case 'Variable':
-            Clazz = Docs.VariableDoc;
+         case 'VirtualTypedef':
+            Clazz = Docs.VirtualTypedefDoc;
             break;
 
          default:
@@ -192,11 +193,11 @@ export class DocFactory
     * @returns {{type: string, node: ASTNode}} decided type.
     * @private
     */
-   static _decideArrowFunctionExpressionType(node)
+   static _decideModuleArrowFunctionExpressionType(node)
    {
       if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
 
-      return { type: 'Function', node };
+      return { type: 'ModuleFunction', node };
    }
 
    /**
@@ -212,7 +213,7 @@ export class DocFactory
     * @returns {{type: string, node: ASTNode}} decided type.
     * @private
     */
-   static _decideAssignmentType(node)
+   static _decideModuleAssignmentType(node)
    {
       if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
 
@@ -222,15 +223,15 @@ export class DocFactory
       {
          case 'ArrowFunctionExpression':
          case 'FunctionExpression':
-            innerType = 'Function';
+            innerType = 'ModuleFunction';
             break;
 
          case 'ClassExpression':
-            innerType = 'Class';
+            innerType = 'ModuleClass';
             break;
 
          default:
-            return { type: 'Assignment', node };
+            return { type: 'ModuleAssignment', node };
       }
 
       const innerNode = node.right;
@@ -254,7 +255,7 @@ export class DocFactory
    {
       if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
 
-      return { type: 'Class', node };
+      return { type: 'ModuleClass', node };
    }
 
    /**
@@ -317,7 +318,7 @@ export class DocFactory
 
          node.expression[s_ALREADY] = true;
 
-         return { type: 'Member', node: node.expression };
+         return { type: 'ClassMember', node: node.expression };
       }
       else
       {
@@ -333,11 +334,11 @@ export class DocFactory
     * @returns {{type: string, node: ASTNode}} decided type.
     * @private
     */
-   static _decideFunctionDeclarationType(node)
+   static _decideModuleFunctionDeclarationType(node)
    {
       if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
 
-      return { type: 'Function', node };
+      return { type: 'ModuleFunction', node };
    }
 
    /**
@@ -348,12 +349,12 @@ export class DocFactory
     * @returns {{type: string, node: ASTNode}} decided type.
     * @private
     */
-   static _decideFunctionExpressionType(node)
+   static _decideModuleFunctionExpressionType(node)
    {
       if (!node.async) { return { type: null, node: null }; }
       if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
 
-      return { type: 'Function', node };
+      return { type: 'ModuleFunction', node };
    }
 
    /**
@@ -364,13 +365,13 @@ export class DocFactory
     * @returns {{type: ?string, node: ?ASTNode}} decided type.
     * @private
     */
-   static _decideMethodDefinitionType(node)
+   static _decideClassMethodDefinitionType(node)
    {
       const classNode = this._findUp(node, ['ClassDeclaration', 'ClassExpression']);
 
       if (this._processedClassNodes.includes(classNode))
       {
-         return { type: 'Method', node };
+         return { type: 'ClassMethod', node };
       }
       else
       {
@@ -403,11 +404,11 @@ export class DocFactory
          switch (tagName)
          {
             case '@typedef':
-               type = 'Typedef';
+               type = 'VirtualTypedef';
                break;
 
             case '@external':
-               type = 'External';
+               type = 'VirtualExternal';
                break;
          }
       }
@@ -418,11 +419,17 @@ export class DocFactory
 
       switch (node.type)
       {
+         case 'ArrowFunctionExpression':
+            return this._decideModuleArrowFunctionExpressionType(node);
+
+         case 'AssignmentExpression':
+            return this._decideModuleAssignmentType(node);
+
          case 'ClassDeclaration':
             return this._decideClassDeclarationType(node);
 
          case 'ClassMethod':
-            return this._decideMethodDefinitionType(node);
+            return this._decideClassMethodDefinitionType(node);
 
          case 'ClassProperty':
             return this._decideClassPropertyType(node);
@@ -431,19 +438,13 @@ export class DocFactory
             return this._decideExpressionStatementType(node);
 
          case 'FunctionDeclaration':
-            return this._decideFunctionDeclarationType(node);
+            return this._decideModuleFunctionDeclarationType(node);
 
          case 'FunctionExpression':
-            return this._decideFunctionExpressionType(node);
+            return this._decideModuleFunctionExpressionType(node);
 
          case 'VariableDeclaration':
-            return this._decideVariableType(node);
-
-         case 'AssignmentExpression':
-            return this._decideAssignmentType(node);
-
-         case 'ArrowFunctionExpression':
-            return this._decideArrowFunctionExpressionType(node);
+            return this._decideModuleVariableType(node);
       }
 
       return { type: null, node: null };
@@ -457,7 +458,7 @@ export class DocFactory
     * @returns {{type: string, node: ASTNode}} decided type.
     * @private
     */
-   static _decideVariableType(node)
+   static _decideModuleVariableType(node)
    {
       if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
 
@@ -469,15 +470,15 @@ export class DocFactory
       {
          case 'ArrowFunctionExpression':
          case 'FunctionExpression':
-            innerType = 'Function';
+            innerType = 'ModuleFunction';
             break;
 
          case 'ClassExpression':
-            innerType = 'Class';
+            innerType = 'ModuleClass';
             break;
 
          default:
-            return { type: 'Variable', node };
+            return { type: 'ModuleVariable', node };
       }
 
       const innerNode = node.declarations[0].init;

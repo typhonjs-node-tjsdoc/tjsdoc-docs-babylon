@@ -1,16 +1,16 @@
-import AbstractClassPropertyDoc  from 'tjsdoc-docs-common/src/doc/abstract/AbstractClassPropertyDoc.js';
+import ClassPropertyDocBase   from 'tjsdoc-docs-common/src/doc/base/ClassPropertyDocBase';
 
-import MethodDoc                 from './MethodDoc.js';
+import ClassMethodDoc         from './ClassMethodDoc.js';
 
 /**
  * Doc Class from ClassProperty AST node.
  */
-export default class ClassPropertyDoc extends AbstractClassPropertyDoc
+export default class ClassPropertyDoc extends ClassPropertyDocBase
 {
    /** Borrow {@link MethodDoc#@_memberof} */
    static _$memberof()
    {
-      Reflect.apply(MethodDoc._$memberof, this, []);
+      Reflect.apply(ClassMethodDoc._$memberof, this, []);
    }
 
    /** Take out self name from self node */

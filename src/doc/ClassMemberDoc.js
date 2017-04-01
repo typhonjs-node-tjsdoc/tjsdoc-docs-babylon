@@ -1,17 +1,17 @@
 import babelGenerator      from 'babel-generator';
-import AbstractMemberDoc   from 'tjsdoc-docs-common/src/doc/abstract/AbstractMemberDoc.js';
+import ClassMemberDocBase  from 'tjsdoc-docs-common/src/doc/base/ClassMemberDocBase';
 
-import MethodDoc           from './MethodDoc.js';
+import ClassMethodDoc      from './ClassMethodDoc.js';
 
 /**
  * Doc Class from Member Expression AST node.
  */
-export default class MemberDoc extends AbstractMemberDoc
+export default class ClassMemberDoc extends ClassMemberDocBase
 {
    /** Borrow {@link MethodDoc#@_memberof} */
    static _$memberof()
    {
-      Reflect.apply(MethodDoc._$memberof, this, []);
+      Reflect.apply(ClassMethodDoc._$memberof, this, []);
    }
 
    /** Take out self name from self node */
