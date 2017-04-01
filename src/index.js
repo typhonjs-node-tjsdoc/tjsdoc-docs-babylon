@@ -39,5 +39,8 @@ export function onPluginLoad(ev)
       { name: 'tjsdoc-param-parser', instance: new ParamParser() },
       { name: 'tjsdoc-test-doc-factory', instance: TestDocFactory }
    ]);
+
+   // Add event binding to retrieve all Babylon and common doc object generator classes.
+   eventbus.on('tjsdoc:data:docs:all:get', () => Docs);
 }
 
