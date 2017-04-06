@@ -21,20 +21,23 @@ export class TestDocFactory
     * Test type. For now only `mocha` is supported.
     * @type {string}
     */
-   _type = void 0;
+   static _type = void 0;
 
    /**
-    * create instance.
+    * Resets DocFactory and traverses code for doc object / docDB insertion.
     *
-    * @param {AST}               ast - AST of test code.
+    * @param {AST}            ast - AST of test code.
     *
-    * @param {DocDB}             docDB - The target DocDB.
+    * @param {DocDB}          docDB - The target DocDB.
     *
-    * @param {PathResolver}      pathResolver - Path resolver associated with test code.
+    * @param {PathResolver}   pathResolver - Path resolver associated with test code.
     *
-    * @param {EventProxy}        eventbus - An event proxy for the main eventbus.
+    * @param {EventProxy}     eventbus - An event proxy for the main eventbus.
+    *
+    * @param {string}         handleError - Determines how to handle errors. Options are `log` and `throw` with the
+    *                                       default being to throw any errors encountered.
     */
-   static reset(ast, docDB, pathResolver, eventbus)
+   static resetAndTraverse(ast, docDB, pathResolver, eventbus, handleError)
    {
       if (typeof ast !== 'object') { throw new TypeError(`'ast' is not an 'object'.`); }
 
@@ -63,6 +66,14 @@ export class TestDocFactory
        */
       this._eventbus = eventbus;
 
+      /**
+       * Determines how to handle errors. Options are `log` and `throw` with the default being to throw any errors
+       * encountered.
+       * @type {string}
+       * @private
+       */
+      this._handleError = handleError;
+
       // Gets the current global / main plugin DocDB counter doc ID then increment it.
       const docID = eventbus.triggerSync('tjsdoc:data:docdb:current:id:increment:get');
 
@@ -77,6 +88,8 @@ export class TestDocFactory
 
       // Insert test file doc.
       this._docDB.insertDocObject(doc);
+
+      this._traverse();
    }
 
    /**
@@ -179,6 +192,44 @@ export class TestDocFactory
 
       // Insert test doc and destroy.
       this._docDB.insertDocObject(testDoc);
+   }
+
+   /**
+    * Traverse doc comments in given file.
+    *
+    * @param {DocFactory|TestDocFactory}  docFactory - Target doc factory to reset.
+    *
+    * @param {EventProxy}  eventbus - The plugin event proxy.
+    *
+    * @param {string}      handleError - Determines how to handle errors. Options are `log` and `throw` with the
+    *                                    default being to throw any errors encountered.
+    * @private
+    */
+   static _traverse()
+   {
+      this._eventbus.trigger('typhonjs:ast:walker:traverse', this._ast,
+      {
+         enterNode: (node, parent) =>
+         {
+            try
+            {
+               this.push(node, parent);
+            }
+            catch (fatalError)
+            {
+               switch (this._handleError)
+               {
+                  case 'log':
+                     this._eventbus.trigger('tjsdoc:system:invalid:code:add',
+                      { filePath: this.filePath, node, fatalError });
+                     break;
+
+                  case 'throw':
+                     throw fatalError;
+               }
+            }
+         }
+      });
    }
 }
 

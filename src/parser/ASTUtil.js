@@ -10,16 +10,17 @@ export default class ASTUtil
     *
     * @param {string} name - variable name.
     * @param {string} className - class name.
-    * @param {Object} loc - location.
+    * @param {ASTNode} sourceNode - source node.
     *
     * @returns {ASTNode} created node.
     */
-   createVariableDeclarationAndNewExpressionNode(name, className, loc)
+   createVariableDeclarationAndNewExpressionNode(name, className, sourceNode)
    {
-      const node = {
+      return {
          type: 'VariableDeclaration',
          kind: 'let',
-         loc,
+         loc: sourceNode.loc,
+         leadingComments: sourceNode.leadingComments,
          declarations:
          [
             {
@@ -29,19 +30,53 @@ export default class ASTUtil
             }
          ]
       };
+   }
 
-      return node;
+   /**
+    * Find ClassDeclaration node.
+    *
+    * @param {AST}      ast - find in this ast.
+    *
+    * @param {string}   name - class name.
+    *
+    * @returns {ASTNode|null} found ast node.
+    */
+   findClassDeclarationExport(ast, name)
+   {
+      if (!name) { return null; }
+
+      // find in same file.
+      for (const node of ast.program.body)
+      {
+         switch (node.type)
+         {
+            case 'ExportDefaultDeclaration':
+            case 'ExportNamedDeclaration':
+               break;
+
+            default:
+               continue;
+         }
+
+         if (node.declaration && node.declaration.type === 'ClassDeclaration' && node.declaration.id.name === name)
+         {
+            return node;
+         }
+      }
+
+      return null;
    }
 
    /**
     * find ClassDeclaration node.
     *
-    * @param {string} name - class name.
     * @param {AST} ast - find in this ast.
+    *
+    * @param {string} name - class name.
     *
     * @returns {ASTNode|null} found ast node.
     */
-   findClassDeclarationNode(name, ast)
+   findClassDeclarationNode(ast, name)
    {
       if (!name) { return null; }
 
@@ -56,12 +91,13 @@ export default class ASTUtil
    /**
     * find FunctionDeclaration node.
     *
-    * @param {string} name - function name.
     * @param {AST} ast - find in this ast.
+    *
+    * @param {string} name - function name.
     *
     * @returns {ASTNode|null} found ast node.
     */
-   findFunctionDeclarationNode(name, ast)
+   findFunctionDeclarationNode(ast, name)
    {
       if (!name) { return null; }
 
@@ -132,6 +168,7 @@ export default class ASTUtil
     * Determines the import style of the given node from it's parent node.
     *
     * @param {ASTNode}  node - An AST node.
+    *
     * @param {string}   name - Name of the doc tag.
     *
     * @returns {string|null}
@@ -229,12 +266,13 @@ export default class ASTUtil
    /**
     * find VariableDeclaration node which has NewExpression.
     *
-    * @param {string} name - variable name.
     * @param {AST} ast - find in this ast.
+    *
+    * @param {string} name - variable name.
     *
     * @returns {ASTNode|null} found ast node.
     */
-   findVariableDeclarationAndNewExpressionNode(name, ast)
+   findVariableDeclarationAndNewExpressionNode(ast, name)
    {
       if (!name) { return null; }
 
@@ -253,12 +291,13 @@ export default class ASTUtil
    /**
     * find VariableDeclaration node.
     *
-    * @param {string} name - variable name.
     * @param {AST} ast - find in this ast.
+    *
+    * @param {string} name - variable name.
     *
     * @returns {ASTNode|null} found ast node.
     */
-   findVariableDeclarationNode(name, ast)
+   findVariableDeclarationNode(ast, name)
    {
       if (!name) { return null; }
 
@@ -310,16 +349,16 @@ export default class ASTUtil
     * an object with keys: text, startLine, and endLine. If there is no leading comment the previous 10 lines from
     * the nodes first line is returned.
     *
+    * @param {ASTNode}  node - An AST node.
+    *
     * @param {string}   code - In memory code.
     *
-    * @param {ASTNode}  node - An AST node.
-
-    * @param {ASTNode}  [allComments=false] - If true then all leading comments are included.
+    * @param {boolean}  [allComments=false] - If true then all leading comments are included.
     *
     * @returns {{text: string, startLine: number, endLine: number }} The last comment & method signature w/
     *                                                                start & end line numbers.
     */
-   getCodeCommentAndFirstLineFromNode(code, node, allComments = false)
+   getCodeCommentAndFirstLineFromNode(node, code, allComments = false)
    {
       if (typeof code !== 'string') { throw new TypeError(`'code' is not a 'string'.`); }
       if (typeof node !== 'object') { throw new TypeError(`'node' is not an 'object'.`); }
@@ -362,16 +401,16 @@ export default class ASTUtil
     * an object with keys: text, startLine, and endLine. If there is no leading comment the previous 10 lines from
     * the nodes first line is returned.
     *
+    * @param {ASTNode}  node - An AST node.
+    *
     * @param {string}   filePath - An absolute file path to read.
     *
-    * @param {ASTNode}  node - An AST node.
-
-    * @param {ASTNode}  [allComments=false] - If true then all leading comments are included.
+    * @param {boolean}  [allComments=false] - If true then all leading comments are included.
     *
     * @returns {{text: string, startLine: number, endLine: number }} The last comment & method signature w/
     *                                                                start & end line numbers.
     */
-   getFileCommentAndFirstLineFromNode(filePath, node, allComments = false)
+   getFileCommentAndFirstLineFromNode(node, filePath, allComments = false)
    {
       if (typeof filePath !== 'string') { throw new TypeError(`'filePath' is not a 'string'.`); }
       if (typeof node !== 'object') { throw new TypeError(`'node' is not an 'object'.`); }
@@ -486,14 +525,14 @@ export default class ASTUtil
        */
       this._eventbus = ev.eventbus;
 
-      this._eventbus.on('tjsdoc:system:ast:class:declaration:create', this.findClassDeclarationNode, this);
-
       this._eventbus.on('tjsdoc:system:ast:class:declaration:find', this.findClassDeclarationNode, this);
 
       this._eventbus.on('tjsdoc:system:ast:code:comment:first:line:from:node:get',
        this.getCodeCommentAndFirstLineFromNode, this);
 
       this._eventbus.on('tjsdoc:system:ast:decorators:find', this.findDecorators, this);
+
+      this._eventbus.on('tjsdoc:system:ast:export:declaration:class:find', this.findClassDeclarationExport, this);
 
       this._eventbus.on('tjsdoc:system:ast:file:comment:first:line:from:node:get',
        this.getFileCommentAndFirstLineFromNode, this);
