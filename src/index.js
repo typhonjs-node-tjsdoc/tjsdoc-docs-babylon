@@ -1,13 +1,13 @@
 import * as Docs           from './doc/';
 
-import * as DocFactory     from './factory/DocFactory.js';
-import * as TestDocFactory from './factory/TestDocFactory.js';
+import DocGenerator        from './generator/DocGenerator.js';
+import TestDocGenerator    from './generator/TestDocGenerator.js';
 
 import ASTUtil             from './parser/ASTUtil.js';
 import CommentParser       from './parser/CommentParser.js';
 import ParamParser         from './parser/ParamParser.js';
 
-export { Docs, DocFactory, TestDocFactory };
+export { Docs, DocGenerator, TestDocGenerator };
 
 /**
  * Wires up two events to retrieve the Babylon docs on the plugin eventbus.
@@ -35,9 +35,9 @@ export function onPluginLoad(ev)
    eventbus.trigger('plugins:add:all', [
       { name: 'tjsdoc-ast-util', instance: new ASTUtil() },
       { name: 'tjsdoc-comment-parser', instance: new CommentParser() },
-      { name: 'tjsdoc-doc-factory', instance: DocFactory },
+      { name: 'tjsdoc-doc-generator', instance: DocGenerator },
       { name: 'tjsdoc-param-parser', instance: new ParamParser() },
-      { name: 'tjsdoc-test-doc-factory', instance: TestDocFactory }
+      { name: 'tjsdoc-test-doc-generator', instance: TestDocGenerator }
    ]);
 
    // Add event binding to retrieve all Babylon and common doc object generator classes.

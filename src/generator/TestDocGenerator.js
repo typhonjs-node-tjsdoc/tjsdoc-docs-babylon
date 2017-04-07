@@ -8,20 +8,32 @@ import * as Docs  from '../doc/';
 const s_ALREADY = Symbol('already');
 
 /**
- * Test doc factory.
+ * Test doc generator. Provides static doc object generation for test files inserting into the given DocDB.
  *
  * @example
- * let factory = new TestDocFactory('mocha', ast, pathResolver, eventbus);
- * factory.push(node, parentNode);
- * let docData = factory.docData;
+ * TestDocGenerator.resetAndTraverse(ast, docDB, pathResolver, eventbus);
  */
-export class TestDocFactory
+export default class TestDocGenerator
 {
    /**
     * Test type. For now only `mocha` is supported.
     * @type {string}
     */
    static _type = void 0;
+
+   /**
+    * Wires up the event binding to get TestDocGenerator.
+    *
+    * @param {PluginEvent} ev - The plugin event.
+    */
+   static onPreGenerate(ev)
+   {
+      if (ev.data.config.test)
+      {
+         this._type = ev.data.config.test.type;
+         ev.eventbus.on('tjsdoc:system:doc:generator:test:get', () => TestDocGenerator);
+      }
+   }
 
    /**
     * Resets DocFactory and traverses code for doc object / docDB insertion.
@@ -126,7 +138,7 @@ export class TestDocFactory
    }
 
    /**
-    * push node, and factory process the node.
+    * Push a node for generator processing.
     *
     * @param {ASTNode} node - target node.
     * @param {ASTNode} parentNode - parent node of target node.
@@ -197,12 +209,6 @@ export class TestDocFactory
    /**
     * Traverse doc comments in given file.
     *
-    * @param {DocFactory|TestDocFactory}  docFactory - Target doc factory to reset.
-    *
-    * @param {EventProxy}  eventbus - The plugin event proxy.
-    *
-    * @param {string}      handleError - Determines how to handle errors. Options are `log` and `throw` with the
-    *                                    default being to throw any errors encountered.
     * @private
     */
    static _traverse()
@@ -230,19 +236,5 @@ export class TestDocFactory
             }
          }
       });
-   }
-}
-
-/**
- * Wires up the event binding to create TestDocFactory instances for tests.
- *
- * @param {PluginEvent} ev - The plugin event.
- */
-export function onPreGenerate(ev)
-{
-   if (ev.data.config.test)
-   {
-      TestDocFactory._type = ev.data.config.test.type;
-      ev.eventbus.on('tjsdoc:system:doc:factory:test:get', () => TestDocFactory);
    }
 }

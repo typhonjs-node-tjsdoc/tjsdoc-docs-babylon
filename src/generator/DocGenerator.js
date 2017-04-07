@@ -11,14 +11,12 @@ const s_ALREADY = Symbol('already');
 const s_DEBUG = false;
 
 /**
- * Doc factory.
+ * Doc generator. Provides static doc object generation for main source files inserting into the given DocDB.
  *
  * @example
- * let factory = new DocFactory(ast, pathResolver, eventbus);
- * factory.push(node, parentNode);
- * let docData = factory.docData;
+ * DocGenerator.resetAndTraverse(ast, docDB, pathResolver, eventbus);
  */
-export class DocFactory
+export default class DocGenerator
 {
    /**
     * Stores an array of already processed class nodes.
@@ -33,6 +31,16 @@ export class DocFactory
     * @private
     */
    static _exportNodesPass = [];
+
+   /**
+    * Wires up the event binding to get DocGenerator.
+    *
+    * @param {PluginEvent} ev - The plugin event.
+    */
+   static onPreGenerate(ev)
+   {
+      ev.eventbus.on('tjsdoc:system:doc:generator:get', () => DocGenerator);
+   }
 
    /**
     * Resets DocFactory and traverses code for doc object / docDB insertion.
@@ -852,6 +860,12 @@ if (s_DEBUG) { console.log('!! DocFactory - _decideClassMethodDefinitionType - f
                pseudoExportNodes.push(pseudoExportNode);
             }
          }
+
+         //TODO REMOVE: test statement
+         // if (exportNode.specifiers.length === 0)
+         // {
+         //    console.log('!! DocFactory - _inspectExportNamedDeclaration - GOT HERE - exportNode: ' + JSON.stringify(exportNode));
+         // }
       }
 
       this._ast.program.body.push(...pseudoExportNodes);
@@ -869,13 +883,24 @@ if (s_DEBUG) { console.log('!! DocFactory - _decideClassMethodDefinitionType - f
    {
       // Export default declarations that reference an identifier or create a new expression need to be processed
       // in a second pass to ensure that the target expression is resolved.
-      if (node.type === 'ExportDefaultDeclaration' && (node.declaration.type === 'Identifier' ||
-       node.declaration.type === 'NewExpression'))
+      if (node.type === 'ExportDefaultDeclaration')
       {
-if (s_DEBUG) { console.log('DocFactory - _isExportSecondPass - adding export 2nd pass node: ' + JSON.stringify(node)); }
-         this._exportNodesPass.push(node);
-         return true;
+         if (node.declaration.type === 'Identifier' || node.declaration.type === 'NewExpression')
+         {
+if (s_DEBUG) { console.log('DocFactory - _isExportSecondPass - adding default export 2nd pass node: ' + JSON.stringify(node)); }
+            this._exportNodesPass.push(node);
+            return true;
+         }
       }
+//       else if (node.type === 'ExportNamedDeclaration')
+//       {
+//          if ((node.declaration && node.declaration.type === 'VariableDeclaration'))// || node.specifiers.length > 0)
+//          {
+// if (s_DEBUG) { console.log('DocFactory - _isExportSecondPass - adding named export 2nd pass node: ' + JSON.stringify(node)); }
+//             this._exportNodesPass.push(node);
+//             return true;
+//          }
+//       }
 
       return false;
    }
@@ -991,15 +1016,16 @@ if (s_DEBUG) { console.log('!! DocFactory - _processDefaultExportNew - exportNod
 
 if (s_DEBUG) { console.log('!! DocFactory - _processDefaultExportNew - 0 - targetClassName: ' + targetClassName + '; targetVariableName: ' + targetVariableName + '; pseudoClassExport: ' + pseudoClassExport); }
 
-      const classNode = this._eventbus.triggerSync('tjsdoc:system:ast:class:declaration:find', this._ast,
-       targetClassName);
+      // const classNode = this._eventbus.triggerSync('tjsdoc:system:ast:class:declaration:find', this._ast,
+      //  targetClassName);
 
-      if (classNode)
+      const classDoc = this._docDB.find({ name: targetClassName, filePath: this.filePath });
+
+      if (Array.isArray(classDoc) && classDoc.length > 0)
       {
 if (s_DEBUG) { console.log('!! DocFactory - _processDefaultExportNew - 1 - classNode'); }
-         const classDoc = this._docDB.find({ name: targetClassName, filePath: this.filePath })[0];
-         classDoc.importStyle = pseudoClassExport ? null : targetClassName;
-         classDoc.export = true;
+         classDoc[0].importStyle = pseudoClassExport ? null : targetClassName;
+         classDoc[0].export = true;
 
          // Synthesize a virtual variable doc from `exportNode`. If there is an existing variable doc then modify
          // the existing variable doc with the export semantics, but only if `@ignore` is not included in the comments
@@ -1027,32 +1053,23 @@ if (s_DEBUG) { console.log('!! DocFactory - _processDefaultExportNew - 1 - class
 
             virtualVarDoc._value.export = true;
             virtualVarDoc._value.importStyle = targetVariableName;
-            virtualVarDoc._value.type = { types: [`${this._pathResolver.filePath}~${targetClassName}`] };
+            virtualVarDoc._value.type = { types: [`${this.filePath}~${targetClassName}`] };
 
 if (s_DEBUG) { console.log('!! DocFactory - _processDefaultExportNew - 1A - virtualVarNode: ' + JSON.stringify(virtualVarNode)); }
 if (s_DEBUG) { console.log('!! DocFactory - _processDefaultExportNew - 1B - virtualVarDoc: ' + JSON.stringify(virtualVarDoc._value)); }
 
             // Search for an existing variable doc with the same name.
             const existingVarDoc = this._docDB.find(
-             { kind: 'variable', name: targetVariableName, filePath: this._pathResolver.filePath });
+             { kind: 'variable', name: targetVariableName, filePath: this.filePath });
 
             // If there is an existing variable doc update it with the export data.
             if (Array.isArray(existingVarDoc) && existingVarDoc.length > 0)
             {
-               if (typeof virtualVarDoc._value.ignore === 'boolean' && virtualVarDoc._value.ignore)
-               {
-                  // nop - do not modify existing variable doc if the virtual var doc is ignored based on `@ignore`
-                  // being included in the export node comments.
-               }
-               else
-               {
-                  // Modify existing variable doc with export semantics.
-                  existingVarDoc[0].description += `\n${virtualVarDoc._value.description}`;
-                  existingVarDoc[0].export = true;
-                  existingVarDoc[0].importStyle = targetVariableName;
-                  existingVarDoc[0].type = { types: [`${this._pathResolver.filePath}~${targetClassName}`] };
-                  existingVarDoc[0].ignore = false;
-               }
+               existingVarDoc[0].description += `\n${virtualVarDoc._value.description}`;
+               existingVarDoc[0].export = true;
+               existingVarDoc[0].importStyle = targetVariableName;
+               existingVarDoc[0].type = { types: [`${this.filePath}~${targetClassName}`] };
+               existingVarDoc[0].ignore = false;
 if (s_DEBUG) { console.log('!! DocFactory - _processDefaultExportNew - 1C - modifying existing variable - existingVarDoc: ' + JSON.stringify(existingVarDoc)); }
             }
             else
@@ -1065,26 +1082,24 @@ if (s_DEBUG) { console.log('!! DocFactory - _processDefaultExportNew - 1D - synt
          }
       }
 
-      const functionNode = this._eventbus.triggerSync('tjsdoc:system:ast:function:declaration:find', this._ast,
-         exportNode.declaration.name);
+      const funcDoc = this._docDB.find({ name: exportNode.declaration.name, filePath: this.filePath });
 
-      if (functionNode)
+      if (Array.isArray(funcDoc) && funcDoc.length > 0)
       {
 if (s_DEBUG) { console.log('!! DocFactory - _processDefaultExportNew - 2 - functionNode'); }
-         const funcDoc = this._docDB.find({ name: exportNode.declaration.name, filePath: this.filePath })[0];
-         funcDoc.importStyle = exportNode.declaration.name;
-         funcDoc.export = true;
+         funcDoc[0].importStyle = exportNode.declaration.name;
+         funcDoc[0].export = true;
+         funcDoc[0].ignore = false;
       }
 
-      const variableNode = this._eventbus.triggerSync('tjsdoc:system:ast:variable:declaration:find', this._ast,
-         exportNode.declaration.name);
+      const varDoc = this._docDB.find({ name: exportNode.declaration.name, filePath: this.filePath });
 
-      if (variableNode)
+      if (Array.isArray(varDoc) && varDoc.length > 0)
       {
 if (s_DEBUG) { console.log('!! DocFactory - _processDefaultExportNew - 3 - variableNode'); }
-         const varDoc = this._docDB.find({ name: exportNode.declaration.name, filePath: this.filePath })[0];
-         varDoc.importStyle = exportNode.declaration.name;
-         varDoc.export = true;
+         varDoc[0].importStyle = exportNode.declaration.name;
+         varDoc[0].export = true;
+         varDoc[0].ignore = false;
       }
    }
 
@@ -1092,16 +1107,182 @@ if (s_DEBUG) { console.log('!! DocFactory - _processDefaultExportNew - 3 - varia
    {
       for (const exportNode of this._exportNodesPass)
       {
-         // Only continue if the export needs to be processed in place.
-         if (exportNode.type === 'ExportDefaultDeclaration')
+         let exportNodeHasIgnoreTag = false;
+
+         if (Array.isArray(exportNode.leadingComments) && exportNode.leadingComments.length > 0)
          {
-            this._processDefaultExport(exportNode);
+            const exportNodeTags = this._eventbus.triggerSync('tjsdoc:system:parser:comment:parse',
+             exportNode.leadingComments[exportNode.leadingComments.length - 1]);
+
+            for (const tag of exportNodeTags)
+            {
+               if (tag.tagName === '@ignore') { exportNodeHasIgnoreTag = true; break; }
+            }
+         }
+
+         // If the export has `@ignore` then no doc object is parsed or updated.
+         if (exportNodeHasIgnoreTag) { continue; }
+
+         switch (exportNode.type)
+         {
+            case 'ExportDefaultDeclaration':
+               this._processDefaultExport(exportNode);
+               break;
+
+            case 'ExportNamedDeclaration':
+               this._processNamedExport(exportNode);
+               break;
          }
       }
    }
 
+   static _processNamedExport(exportNode)
+   {
+      if (exportNode.declaration && exportNode.declaration.type === 'VariableDeclaration')
+      {
+         for (const declaration of exportNode.declaration.declarations)
+         {
+            if (!declaration.init || declaration.init.type !== 'NewExpression') { continue; }
+
+            // const classNode = this._eventbus.triggerSync('tjsdoc:system:ast:class:declaration:find', this._ast,
+            //  declaration.init.callee.name);
+
+            const targetClassName = declaration.init.callee.name;
+
+            const classDoc = this._docDB.find({ name: targetClassName, filePath: this.filePath });
+
+            if (Array.isArray(classDoc) && classDoc.length > 0)
+            {
+if (s_DEBUG) { console.log('!! DocGenerator - _processNamedExportNew - 1 - classNode'); }
+               classDoc[0].export = true;
+               classDoc[0].ignore = false;
+               classDoc[0].importStyle = targetClassName;
+            }
+
+            // if (classNode)
+            // {
+            //    const pseudoExportNode = this._copy(exportNode);
+            //
+            //    pseudoExportNode.declaration = this._copy(classNode);
+            //    pseudoExportNode.leadingComments = null;
+            //    pseudoExportNodes.push(pseudoExportNode);
+            //    pseudoExportNode.declaration.__PseudoExport__ = true;
+            //
+            //    this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', classNode);
+            // }
+         }
+
+         return;
+      }
+
+//       for (const specifier of exportNode.specifiers)
+//       {
+//          if (specifier.type !== 'ExportSpecifier') { continue; }
+//
+//          let targetClassName = null;
+//          let pseudoClassExport;
+//
+//          // const varNode = this._eventbus.triggerSync('tjsdoc:system:ast:variable:declaration:new:expression:find',
+//          //    this._ast, specifier.exported.name);
+//
+//          const varDoc = this._docDB.find({ name: specifier.exported.name, filePath: this.filePath });
+//
+//          if (Array.isArray(varDoc) && varDoc.length > 0)
+//          {
+// if (s_DEBUG) { console.log('!! DocGenerator - _processDefaultExportNew - 2 - varDoc'); }
+//             varDoc[0].importStyle = exportNode.declaration.name;
+//             varDoc[0].export = true;
+//             varDoc[0].ignore = false;
+//
+//             targetClassName = varNode.declarations[0].init.callee.name;
+//             pseudoClassExport = true;
+//
+//             const pseudoExportNode = this._copy(exportNode);
+//
+//             pseudoExportNode.declaration = this._copy(varNode);
+//             pseudoExportNode.specifiers = null;
+//             pseudoExportNodes.push(pseudoExportNode);
+//
+//             this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', varNode);
+//          }
+//          else
+//          {
+//             targetClassName = specifier.exported.name;
+//             pseudoClassExport = false;
+//          }
+//
+//          if (varNode)
+//          {
+//             targetClassName = varNode.declarations[0].init.callee.name;
+//             pseudoClassExport = true;
+//
+//             const pseudoExportNode = this._copy(exportNode);
+//
+//             pseudoExportNode.declaration = this._copy(varNode);
+//             pseudoExportNode.specifiers = null;
+//             pseudoExportNodes.push(pseudoExportNode);
+//
+//             this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', varNode);
+//          }
+//          else
+//          {
+//             targetClassName = specifier.exported.name;
+//             pseudoClassExport = false;
+//          }
+//
+//          const classNode = this._eventbus.triggerSync('tjsdoc:system:ast:class:declaration:find', this._ast,
+//             targetClassName);
+//
+//          if (classNode)
+//          {
+//             const pseudoExportNode = this._copy(exportNode);
+//
+//             pseudoExportNode.declaration = this._copy(classNode);
+//             pseudoExportNode.leadingComments = null;
+//             pseudoExportNode.specifiers = null;
+//             pseudoExportNode.declaration.__PseudoExport__ = pseudoClassExport;
+//
+//             pseudoExportNodes.push(pseudoExportNode);
+//
+//             this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', classNode);
+//          }
+//
+//          const functionNode = this._eventbus.triggerSync('tjsdoc:system:ast:function:declaration:find', this._ast,
+//             specifier.exported.name);
+//
+//          if (functionNode)
+//          {
+//             const pseudoExportNode = this._copy(exportNode);
+//
+//             pseudoExportNode.declaration = this._copy(functionNode);
+//             pseudoExportNode.leadingComments = null;
+//             pseudoExportNode.specifiers = null;
+//
+//             this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', functionNode);
+//
+//             pseudoExportNodes.push(pseudoExportNode);
+//          }
+//
+//          const variableNode = this._eventbus.triggerSync('tjsdoc:system:ast:variable:declaration:find', this._ast,
+//             specifier.exported.name);
+//
+//          if (variableNode)
+//          {
+//             const pseudoExportNode = this._copy(exportNode);
+//
+//             pseudoExportNode.declaration = this._copy(variableNode);
+//             pseudoExportNode.leadingComments = null;
+//             pseudoExportNode.specifiers = null;
+//
+//             this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', variableNode);
+//
+//             pseudoExportNodes.push(pseudoExportNode);
+//          }
+//       }
+   }
+
    /**
-    * Push a node for factory processing.
+    * Push a node for generator processing.
     *
     * @param {ASTNode} node - target node.
     *
@@ -1154,7 +1335,7 @@ if (s_DEBUG) { console.log('!! DocFactory - _processDefaultExportNew - 3 - varia
    }
 
    /**
-    * Push a node for factory processing.
+    * Push a node for generator processing.
     *
     * @param {ASTNode} node - target node.
     *
@@ -1209,12 +1390,6 @@ if (s_DEBUG) { console.log('!! DocFactory - _processDefaultExportNew - 3 - varia
    /**
     * Traverse doc comments in given file.
     *
-    * @param {DocFactory|TestDocFactory}  docFactory - Target doc factory to reset.
-    *
-    * @param {EventProxy}  eventbus - The plugin event proxy.
-    *
-    * @param {string}      handleError - Determines how to handle errors. Options are `log` and `throw` with the
-    *                                    default being to throw any errors encountered.
     * @private
     */
    static _traverseNew()
@@ -1252,19 +1427,13 @@ const startDocID = this._eventbus.triggerSync('tjsdoc:data:docdb:current:id:get'
 
 const totalDocsProcessed = this._eventbus.triggerSync('tjsdoc:data:docdb:current:id:get') - startDocID;
 
-if (s_DEBUG) { console.log('!! DocFactory - _traverseNew - totalDocsProcessed: ' + totalDocsProcessed); }
-if (s_DEBUG) { console.log('!! DocFactory - _traverseNew - docDB: ' + JSON.stringify(this._docDB.find())); }
+if (s_DEBUG) { console.log('!! DocGenerator - _traverseNew - totalDocsProcessed: ' + totalDocsProcessed); }
+if (s_DEBUG) { console.log('!! DocGenerator - _traverseNew - docDB: ' + JSON.stringify(this._docDB.find())); }
    }
 
    /**
     * Traverse doc comments in given file.
     *
-    * @param {DocFactory|TestDocFactory}  docFactory - Target doc factory to reset.
-    *
-    * @param {EventProxy}  eventbus - The plugin event proxy.
-    *
-    * @param {string}      handleError - Determines how to handle errors. Options are `log` and `throw` with the
-    *                                    default being to throw any errors encountered.
     * @private
     */
    static _traverseOrig()
@@ -1297,8 +1466,8 @@ const startDocID = this._eventbus.triggerSync('tjsdoc:data:docdb:current:id:get'
 
 const totalDocsProcessed = this._eventbus.triggerSync('tjsdoc:data:docdb:current:id:get') - startDocID;
 
-if (s_DEBUG) { console.log('!! DocFactory - _traverseOrig - totalDocsProcessed: ' + totalDocsProcessed); }
-if (s_DEBUG) { console.log('!! DocFactory - _traverseOrig - docDB: ' + JSON.stringify(this._docDB.find())); }
+if (s_DEBUG) { console.log('!! DocGenerator - _traverseOrig - totalDocsProcessed: ' + totalDocsProcessed); }
+if (s_DEBUG) { console.log('!! DocGenerator - _traverseOrig - docDB: ' + JSON.stringify(this._docDB.find())); }
    }
 
    /**
@@ -1398,14 +1567,4 @@ if (s_DEBUG) { console.log('!! DocFactory - _traverseOrig - docDB: ' + JSON.stri
 
       return exportedASTNode;
    }
-}
-
-/**
- * Wires up two events to create DocFactory instances for in memory code and file usage.
- *
- * @param {PluginEvent} ev - The plugin event.
- */
-export function onPreGenerate(ev)
-{
-   ev.eventbus.on('tjsdoc:system:doc:factory:get', () => DocFactory);
 }
