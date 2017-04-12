@@ -16,18 +16,18 @@ const s_ALREADY = Symbol('already');
 export default class DocGenerator
 {
    /**
-    * Stores an array of already processed class nodes.
-    * @type {ASTNode[]}
-    * @private
-    */
-   static _processedClassNodes = [];
-
-   /**
     * Stores export nodes that need to be resolved in a second pass.
     * @type {ASTNode[]}
     * @private
     */
    static _exportNodesPass = [];
+
+   /**
+    * Stores an array of already processed class nodes.
+    * @type {ASTNode[]}
+    * @private
+    */
+   static _processedClassNodes = [];
 
    /**
     * Wires up the event binding to get DocGenerator.
@@ -93,18 +93,8 @@ export default class DocGenerator
        */
       this._handleError = handleError;
 
-      /**
-       * Stores an array of already processed class nodes.
-       * @type {ASTNode[]}
-       * @private
-       */
+      // Reset tracking arrays.
       this._processedClassNodes.length = 0;
-
-      /**
-       * Stores export nodes that need to be resolved in a second pass.
-       * @type {ASTNode[]}
-       * @private
-       */
       this._exportNodesPass.length = 0;
 
       // Gets the current global / main plugin DocDB counter doc ID then increment it.
@@ -158,6 +148,7 @@ export default class DocGenerator
     */
    static _createDoc(node, tags)
    {
+      // Decide if there is a doc type to process based on tags and node.
       const result = this._decideType(tags, node);
       const type = result.type;
 
@@ -165,10 +156,8 @@ export default class DocGenerator
 
       if (!type) { return null; }
 
-      if (type === 'ModuleClass')
-      {
-         this._processedClassNodes.push(node);
-      }
+      // Store all ModuleClass nodes which provides an inclusion check for class properties / members.
+      if (type === 'ModuleClass') { this._processedClassNodes.push(node); }
 
       let Clazz;
 
@@ -217,6 +206,7 @@ export default class DocGenerator
       if (!Clazz) { return null; }
       if (!node.type) { node.type = type; }
 
+      // Create the static doc with the next global doc ID and current file / module ID.
       return Clazz.create(this._eventbus.triggerSync('tjsdoc:data:docdb:current:id:increment:get'), this._moduleID,
        this._ast, node, this._pathResolver, tags, this._eventbus);
    }
