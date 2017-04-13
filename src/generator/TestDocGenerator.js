@@ -103,7 +103,7 @@ export default class TestDocGenerator
       this._moduleID = docID;
 
       // Test file doc
-      const staticDoc = Docs.TestFileDoc.create(docID, ast, ast, pathResolver, [], this._eventbus);
+      const staticDoc = Docs.ModuleTestFileDoc.create(docID, ast, ast, pathResolver, [], this._eventbus);
 
       // Insert test file doc and reset.
       this._docDB.insertStaticDoc(staticDoc);

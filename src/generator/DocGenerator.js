@@ -101,8 +101,8 @@ export default class DocGenerator
       const docID = eventbus.triggerSync('tjsdoc:data:docdb:current:id:increment:get');
 
       // If code is defined then treat it as an memory doc otherwise a file doc.
-      const staticDoc = typeof code === 'string' ? Docs.MemoryDoc.create(docID, ast, ast, pathResolver, [],
-       this._eventbus, code) : Docs.FileDoc.create(docID, ast, ast, pathResolver, [], this._eventbus);
+      const staticDoc = typeof code === 'string' ? Docs.ModuleMemoryDoc.create(docID, ast, ast, pathResolver, [],
+       this._eventbus, code) : Docs.ModuleFileDoc.create(docID, ast, ast, pathResolver, [], this._eventbus);
 
       // Insert file or memory doc and reset.
       this._docDB.insertStaticDoc(staticDoc);
