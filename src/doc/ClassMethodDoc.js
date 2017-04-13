@@ -6,12 +6,24 @@ import ClassMethodDocBase  from 'tjsdoc-docs-common/src/doc/base/ClassMethodDocB
  */
 export default class ClassMethodDoc extends ClassMethodDocBase
 {
+   /** Use kind property of self node to determine if method is an accessor (get / set). */
+   static _$accessor()
+   {
+      this._value.accessor = this._node.kind === 'get' || this._node.kind === 'set';
+   }
+
    /**
     * use async property of self node.
     */
    static _$async()
    {
       this._value.async = this._node.async;
+   }
+
+   /** Use kind property of self node to assign method category (constructor, get, method, set). */
+   static _$category()
+   {
+      this._value.category = this._node.kind;
    }
 
    /** use generator property of self node. */
@@ -58,21 +70,16 @@ export default class ClassMethodDoc extends ClassMethodDocBase
       }
    }
 
-   /** if @param is not exists, guess type of param by using self node. but ``get`` and ``set`` are not guessed. */
+   /** If @param does not exist guess type of param by using self node. but accessors are not guessed. */
    static _$param()
    {
       super._$param();
 
       if (this._value.params) { return; }
 
-      this._ensureApplied('_$kind');
+      this._ensureApplied('_$accessor');
 
-      switch (this._value.kind)
-      {
-         case 'get':
-         case 'set':
-            return;
-      }
+      if (this._value.accessor) { return; }
 
       this._value.params = this._eventbus.triggerSync('tjsdoc:system:parser:param:guess', this._node.params);
    }
@@ -87,9 +94,9 @@ export default class ClassMethodDoc extends ClassMethodDocBase
 
       if (this._value.return) { return; }
 
-      this._ensureApplied('_$kind');
+      this._ensureApplied('_$category');
 
-      switch (this._value.kind)
+      switch (this._value.category)
       {
          case 'constructor':
          case 'get':
@@ -110,10 +117,7 @@ export default class ClassMethodDoc extends ClassMethodDocBase
     */
    static _$static()
    {
-      if ('static' in this._node)
-      {
-         this._value.static = this._node.static;
-      }
+      if ('static' in this._node) { this._value.static = this._node.static; }
    }
 
    /** if @type is not exists, guess type by using self node. only ``get`` and ``set`` are guess. */
@@ -123,9 +127,9 @@ export default class ClassMethodDoc extends ClassMethodDocBase
 
       if (this._value.type) { return; }
 
-      this._ensureApplied('_$kind');
+      this._ensureApplied('_$category');
 
-      switch (this._value.kind)
+      switch (this._value.category)
       {
          case 'set':
             this._value.type = this._eventbus.triggerSync('tjsdoc:system:parser:param:type:guess', this._node.right);
