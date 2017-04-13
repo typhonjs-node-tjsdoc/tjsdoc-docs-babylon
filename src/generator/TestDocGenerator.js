@@ -43,7 +43,7 @@ export default class TestDocGenerator
    }
 
    /**
-    * Resets DocFactory and traverses code for doc object / docDB insertion.
+    * Resets TestDocGenerator and traverses code for doc object / docDB insertion.
     *
     * @param {AST}            ast - AST of test code.
     *

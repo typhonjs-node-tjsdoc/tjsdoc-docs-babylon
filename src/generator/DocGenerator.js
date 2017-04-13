@@ -40,7 +40,7 @@ export default class DocGenerator
    }
 
    /**
-    * Resets DocFactory and traverses code for doc object / docDB insertion.
+    * Resets DocGenerator and traverses code for doc object / docDB insertion.
     *
     * @param {AST}            ast - AST of source code.
     *

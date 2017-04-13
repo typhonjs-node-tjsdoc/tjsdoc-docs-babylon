@@ -38,7 +38,7 @@ export default class ModuleVariableDoc extends ModuleVariableDocBase
     *
     * Note: For NewExpression this only works for directly exported nodes and not intermediate exports.
     * Intermediate nodes like `export default <variable>` or `export default new Class()` need special processing
-    * in DocFactory `_processDefaultExport` & `_processNamedExport` to set the type based on the intermediate export.
+    * in DocGenerator `_processDefaultExport` & `_processNamedExport` to set the type based on the intermediate export.
     */
    static _$type()
    {
