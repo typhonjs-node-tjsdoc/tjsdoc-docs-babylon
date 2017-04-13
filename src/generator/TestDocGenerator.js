@@ -103,10 +103,10 @@ export default class TestDocGenerator
       this._moduleID = docID;
 
       // Test file doc
-      const doc = Docs.TestFileDoc.create(docID, ast, ast, pathResolver, [], this._eventbus);
+      const staticDoc = Docs.TestFileDoc.create(docID, ast, ast, pathResolver, [], this._eventbus);
 
-      // Insert test file doc.
-      this._docDB.insertDocObject(doc);
+      // Insert test file doc and reset.
+      this._docDB.insertStaticDoc(staticDoc);
 
       this._traverse();
    }
@@ -206,11 +206,11 @@ export default class TestDocGenerator
       expression._tjsdocTestId = uniqueId;
       expression._tjsdocTestName = expression.callee.name + uniqueId;
 
-      const testDoc = Docs.TestDoc.create(this._eventbus.triggerSync('tjsdoc:data:docdb:current:id:increment:get'),
+      const staticDoc = Docs.TestDoc.create(this._eventbus.triggerSync('tjsdoc:data:docdb:current:id:increment:get'),
        this._moduleID, this._ast, expression, this._pathResolver, tags, this._eventbus);
 
-      // Insert test doc and destroy.
-      this._docDB.insertDocObject(testDoc);
+      // Insert test doc and reset.
+      this._docDB.insertStaticDoc(staticDoc);
    }
 
    /**

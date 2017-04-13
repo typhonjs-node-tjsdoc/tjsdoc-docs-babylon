@@ -101,11 +101,11 @@ export default class DocGenerator
       const docID = eventbus.triggerSync('tjsdoc:data:docdb:current:id:increment:get');
 
       // If code is defined then treat it as an memory doc otherwise a file doc.
-      const doc = typeof code === 'string' ? Docs.MemoryDoc.create(docID, ast, ast, pathResolver, [],
+      const staticDoc = typeof code === 'string' ? Docs.MemoryDoc.create(docID, ast, ast, pathResolver, [],
        this._eventbus, code) : Docs.FileDoc.create(docID, ast, ast, pathResolver, [], this._eventbus);
 
-      // Insert file or memory doc.
-      this._docDB.insertDocObject(doc);
+      // Insert file or memory doc and reset.
+      this._docDB.insertStaticDoc(staticDoc);
 
       /**
        * Store the docID for the memory / file and add it to all children doc data as `__moduleID__`.
@@ -1052,11 +1052,11 @@ export default class DocGenerator
       {
          const tags = this._eventbus.triggerSync('tjsdoc:system:parser:comment:parse', comment);
 
-         let doc;
+         let staticDoc;
 
          if (comment === lastComment)
          {
-            doc = this._createDoc(node, tags);
+            staticDoc = this._createDoc(node, tags);
          }
          else
          {
@@ -1064,11 +1064,11 @@ export default class DocGenerator
 
             Reflect.defineProperty(virtualNode, 'parent', { value: parentNode });
 
-            doc = this._createDoc(virtualNode, tags);
+            staticDoc = this._createDoc(virtualNode, tags);
          }
 
-         // Insert doc and destroy.
-         if (doc) { this._docDB.insertDocObject(doc); }
+         // Insert doc and reset.
+         if (staticDoc) { this._docDB.insertStaticDoc(staticDoc); }
       }
    }
 
@@ -1205,7 +1205,7 @@ export default class DocGenerator
          virtualVarDoc._value.type = { types: [`${filePath}~${targetClassName}`] };
 
          // No existing variable doc has been found, so insert the exported virtual variable doc.
-         this._docDB.insertDocObject(virtualVarDoc);
+         this._docDB.insertStaticDoc(virtualVarDoc);
       }
    }
 
