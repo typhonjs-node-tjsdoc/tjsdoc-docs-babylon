@@ -5,6 +5,27 @@ import TestDocBase  from 'tjsdoc-docs-common/src/doc/base/TestDocBase.js';
  */
 export default class TestDoc extends TestDocBase
 {
+   /** Use name property of self node to determine test category. */
+   static _$category()
+   {
+      switch (this._node.callee.name)
+      {
+         case 'suite':
+         case 'context':
+         case 'describe':
+            this._value.category = 'describe';
+            break;
+
+         case 'test':
+         case 'it':
+            this._value.category = 'it';
+            break;
+
+         default:
+            throw new Error(`Unknown name. node.callee.name = ${this._node.callee.name}`);
+      }
+   }
+
    /** set describe by using test node arguments. */
    static _$desc()
    {
@@ -13,27 +34,6 @@ export default class TestDoc extends TestDocBase
       if (this._value.description) { return; }
 
       this._value.description = this._node.arguments[0].value;
-   }
-
-   /** use name property of self node. */
-   static _$kind()
-   {
-      switch (this._node.callee.name)
-      {
-         case 'suite': // fall
-         case 'context': // fall
-         case 'describe':
-            this._value.kind = 'testDescribe';
-            break;
-
-         case 'test': // fall
-         case 'it':
-            this._value.kind = 'testIt';
-            break;
-
-         default:
-            throw new Error(`unknown name. node.callee.name = ${this._node.callee.name}`);
-      }
    }
 
    /** set memberof to use parent test nod and file path. */
