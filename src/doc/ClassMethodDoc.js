@@ -20,22 +20,10 @@ export default class ClassMethodDoc extends ClassMethodDocBase
       this._value.async = this._node.async;
    }
 
-   /** Use kind property of self node to assign method category (constructor, get, method, set). */
-   static _$category()
-   {
-      this._value.category = this._node.kind;
-   }
-
    /** use generator property of self node. */
    static _$generator()
    {
       this._value.generator = this._node.generator;
-   }
-
-   /** use kind property of self node. */
-   static _$kind()
-   {
-      this._value.kind = this._node.kind;
    }
 
    /** take out memberof from parent class node */
@@ -82,6 +70,12 @@ export default class ClassMethodDoc extends ClassMethodDocBase
       if (this._value.accessor) { return; }
 
       this._value.params = this._eventbus.triggerSync('tjsdoc:system:parser:param:guess', this._node.params);
+   }
+
+   /** Use kind property of self node to assign method qualifier (constructor, get, method, set). */
+   static _$qualifier()
+   {
+      this._value.qualifier = this._node.kind;
    }
 
    /**
