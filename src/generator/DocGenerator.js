@@ -1187,7 +1187,7 @@ export default class DocGenerator
         this._ast, virtualVarNode, this._pathResolver, tags, this._eventbus);
 
       // Search for an existing variable doc with the same name.
-      const existingVarDoc = this._docDB.find({ kind: 'variable', name: targetVariableName, filePath });
+      const existingVarDoc = this._docDB.find({ category: 'ModuleVariable', name: targetVariableName, filePath });
 
       // If there is an existing variable doc update it with the export data.
       if (Array.isArray(existingVarDoc) && existingVarDoc.length > 0)
