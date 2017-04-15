@@ -20,6 +20,12 @@ export default class ClassMethodDoc extends ClassMethodDocBase
       this._value.async = this._node.async;
    }
 
+   /** specify `ClassMember` to category if the method is an accessor (get / set) otherwise `ClassMethod`. */
+   static _$category()
+   {
+      this._value.category = this._node.kind === 'get' || this._node.kind === 'set' ? 'ClassMember' : 'ClassMethod';
+   }
+
    /** use generator property of self node. */
    static _$generator()
    {
