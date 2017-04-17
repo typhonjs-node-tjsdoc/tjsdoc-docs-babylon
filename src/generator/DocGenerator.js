@@ -212,64 +212,6 @@ export default class DocGenerator
    }
 
    /**
-    * Decide doc object type from arrow function expression node.
-    *
-    * @param {ASTNode} node - target node that is arrow function expression node.
-    *
-    * @returns {{type: string, node: ASTNode}} decided type.
-    * @private
-    */
-   static _decideModuleArrowFunctionExpressionType(node)
-   {
-      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
-
-      return { type: 'ModuleFunction', node };
-   }
-
-   /**
-    * Decide doc object type from `AssignmentExpression` node.
-    *
-    * @example
-    * export default functionName = function() {}
-    * export default functionName = () => {}
-    * export default ClassName = class {}
-    *
-    * @param {ASTNode} node - target node that is assignment node.
-    *
-    * @returns {{type: string, node: ASTNode}} decided type.
-    * @private
-    */
-   static _decideModuleAssignmentType(node)
-   {
-      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
-
-      let innerType;
-
-      switch (node.right.type)
-      {
-         case 'ArrowFunctionExpression':
-         case 'FunctionExpression':
-            innerType = 'ModuleFunction';
-            break;
-
-         case 'ClassExpression':
-            innerType = 'ModuleClass';
-            break;
-
-         default:
-            return { type: 'ModuleAssignment', node };
-      }
-
-      const innerNode = node.right;
-
-      Reflect.defineProperty(innerNode, 'parent', { value: node });
-
-      innerNode[s_ALREADY] = true;
-
-      return { type: innerType, node: innerNode };
-   }
-
-   /**
     * Decide doc object type from class declaration node.
     *
     * @param {ASTNode} node - target node that is class declaration node.
@@ -282,6 +224,32 @@ export default class DocGenerator
       if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
 
       return { type: 'ModuleClass', node };
+   }
+
+   /**
+    * Decide doc object  type from method definition node.
+    *
+    * @param {ASTNode} node - target node that is method definition node.
+    *
+    * @returns {{type: ?string, node: ?ASTNode}} decided type.
+    * @private
+    */
+   static _decideClassMethodDefinitionType(node)
+   {
+      const classNode = this._findUp(node, ['ClassDeclaration', 'ClassExpression']);
+
+      if (this._processedClassNodes.includes(classNode))
+      {
+         return { type: 'ClassMethod', node };
+      }
+      else
+      {
+         const sanitizedNode = this._eventbus.triggerSync('tjsdoc:system:ast:node:sanitize:children', node);
+
+         this._eventbus.trigger('log:warn', 'This method is not in class:', JSON.stringify(sanitizedNode));
+
+         return { type: null, node: null };
+      }
    }
 
    /**
@@ -353,6 +321,64 @@ export default class DocGenerator
    }
 
    /**
+    * Decide doc object type from arrow function expression node.
+    *
+    * @param {ASTNode} node - target node that is arrow function expression node.
+    *
+    * @returns {{type: string, node: ASTNode}} decided type.
+    * @private
+    */
+   static _decideModuleArrowFunctionExpressionType(node)
+   {
+      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
+
+      return { type: 'ModuleFunction', node };
+   }
+
+   /**
+    * Decide doc object type from `AssignmentExpression` node.
+    *
+    * @example
+    * export default functionName = function() {}
+    * export default functionName = () => {}
+    * export default ClassName = class {}
+    *
+    * @param {ASTNode} node - target node that is assignment node.
+    *
+    * @returns {{type: string, node: ASTNode}} decided type.
+    * @private
+    */
+   static _decideModuleAssignmentType(node)
+   {
+      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
+
+      let innerType;
+
+      switch (node.right.type)
+      {
+         case 'ArrowFunctionExpression':
+         case 'FunctionExpression':
+            innerType = 'ModuleFunction';
+            break;
+
+         case 'ClassExpression':
+            innerType = 'ModuleClass';
+            break;
+
+         default:
+            return { type: 'ModuleAssignment', node };
+      }
+
+      const innerNode = node.right;
+
+      Reflect.defineProperty(innerNode, 'parent', { value: node });
+
+      innerNode[s_ALREADY] = true;
+
+      return { type: innerType, node: innerNode };
+   }
+
+   /**
     * Decide doc object type from function declaration node.
     *
     * @param {ASTNode} node - target node that is function declaration node.
@@ -384,29 +410,43 @@ export default class DocGenerator
    }
 
    /**
-    * Decide doc object  type from method definition node.
+    * Decide doc object type from variable node.
     *
-    * @param {ASTNode} node - target node that is method definition node.
+    * @param {ASTNode} node - target node that is variable node.
     *
-    * @returns {{type: ?string, node: ?ASTNode}} decided type.
+    * @returns {{type: string, node: ASTNode}} decided type.
     * @private
     */
-   static _decideClassMethodDefinitionType(node)
+   static _decideModuleVariableType(node)
    {
-      const classNode = this._findUp(node, ['ClassDeclaration', 'ClassExpression']);
+      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
 
-      if (this._processedClassNodes.includes(classNode))
+      if (!node.declarations[0].init) { return { type: null, node: null }; }
+
+      let innerType = null;
+
+      switch (node.declarations[0].init.type)
       {
-         return { type: 'ClassMethod', node };
-      }
-      else
-      {
-         const sanitizedNode = this._eventbus.triggerSync('tjsdoc:system:ast:node:sanitize:children', node);
+         case 'ArrowFunctionExpression':
+         case 'FunctionExpression':
+            innerType = 'ModuleFunction';
+            break;
 
-         this._eventbus.trigger('log:warn', 'This method is not in class:', JSON.stringify(sanitizedNode));
+         case 'ClassExpression':
+            innerType = 'ModuleClass';
+            break;
 
-         return { type: null, node: null };
+         default:
+            return { type: 'ModuleVariable', node };
       }
+
+      const innerNode = node.declarations[0].init;
+
+      Reflect.defineProperty(innerNode, 'parent', { value: node });
+
+      innerNode[s_ALREADY] = true;
+
+      return { type: innerType, node: innerNode };
    }
 
    /**
@@ -474,64 +514,6 @@ export default class DocGenerator
       }
 
       return { type: null, node: null };
-   }
-
-   /**
-    * Decide doc object type from variable node.
-    *
-    * @param {ASTNode} node - target node that is variable node.
-    *
-    * @returns {{type: string, node: ASTNode}} decided type.
-    * @private
-    */
-   static _decideModuleVariableType(node)
-   {
-      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
-
-      if (!node.declarations[0].init) { return { type: null, node: null }; }
-
-      let innerType = null;
-
-      switch (node.declarations[0].init.type)
-      {
-         case 'ArrowFunctionExpression':
-         case 'FunctionExpression':
-            innerType = 'ModuleFunction';
-            break;
-
-         case 'ClassExpression':
-            innerType = 'ModuleClass';
-            break;
-
-         default:
-            return { type: 'ModuleVariable', node };
-      }
-
-      const innerNode = node.declarations[0].init;
-
-      Reflect.defineProperty(innerNode, 'parent', { value: node });
-
-      innerNode[s_ALREADY] = true;
-
-      return { type: innerType, node: innerNode };
-   }
-
-   /**
-    * Returns the current AST set.
-    * @returns {AST}
-    */
-   static get ast()
-   {
-      return this._ast;
-   }
-
-   /**
-    * Returns the current file path set.
-    * @returns {string|undefined}
-    */
-   static get filePath()
-   {
-      return this._pathResolver ? this._pathResolver.filePath : void 0;
    }
 
    /**
@@ -693,7 +675,7 @@ export default class DocGenerator
     */
    static _processDefaultExport(exportNode)
    {
-      const filePath = this.filePath;
+      const filePath = this._pathResolver.filePath;
       let targetClassName = null;
       let targetVariableName = null;
       let pseudoClassExport;
@@ -839,7 +821,7 @@ export default class DocGenerator
     */
    static _processNamedExport(exportNode)
    {
-      const filePath = this.filePath;
+      const filePath = this._pathResolver.filePath;
 
       if (exportNode.declaration && exportNode.declaration.type === 'VariableDeclaration')
       {
@@ -968,7 +950,7 @@ export default class DocGenerator
     */
    static _traverse()
    {
-      const filePath = this.filePath;
+      const filePath = this._pathResolver.filePath;
 
       this._eventbus.trigger('typhonjs:ast:walker:traverse', this._ast,
       {
@@ -1164,7 +1146,7 @@ export default class DocGenerator
     */
    static _updateOrCreateVarDoc(targetVariableName, targetClassName, exportNode)
    {
-      const filePath = this.filePath;
+      const filePath = this._pathResolver.filePath;
       const isDefaultExport = exportNode.type === 'ExportDefaultDeclaration';
 
       // First synthesize the virtual variable doc from `exportNode`.
@@ -1542,7 +1524,7 @@ export default class DocGenerator
                {
                   case 'log':
                      this._eventbus.trigger('tjsdoc:system:invalid:code:add',
-                      { filePath: this.filePath, node, fatalError });
+                      { filePath: this._pathResolver.filePath, node, fatalError });
                      break;
 
                   case 'throw':
