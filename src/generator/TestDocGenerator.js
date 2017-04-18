@@ -1,14 +1,11 @@
 import * as Docs  from '../doc/';
 
 /**
- * Provides a symbol to store checking if already covered.
- * @type {Symbol}
- * @ignore
- */
-const s_ALREADY = Symbol('already');
-
-/**
  * Test doc generator. Provides static doc object generation for test files inserting into the given DocDB.
+ *
+ * TestDocGenerator is much simpler that DocGenerator. Presently only parsing of Mocha tests are provided.
+ *
+ * Mocha functions invoked are processed: 'context', 'describe', 'it', 'suite', 'test'.
  *
  * @example
  * TestDocGenerator.resetAndTraverse(ast, docDB, pathResolver, eventbus);
@@ -112,26 +109,6 @@ export default class TestDocGenerator
    }
 
    /**
-    * Returns the current AST set.
-    *
-    * @returns {AST}
-    */
-   static get ast()
-   {
-      return this._ast;
-   }
-
-   /**
-    * Returns the current file path set.
-    *
-    * @returns {string|undefined}
-    */
-   static get filePath()
-   {
-      return this._pathResolver ? this._pathResolver.filePath : void 0;
-   }
-
-   /**
     * Gets a unique id.
     *
     * @returns {number} unique id.
@@ -163,8 +140,10 @@ export default class TestDocGenerator
    }
 
    /**
-    * push node as mocha test code.
+    * Push node as mocha test code.
+    *
     * @param {ASTNode} node - target node.
+    *
     * @private
     */
    static _pushForMocha(node)
@@ -175,6 +154,7 @@ export default class TestDocGenerator
 
       if (expression.type !== 'CallExpression') { return; }
 
+      // Add a test doc for Mocha function types.
       switch (expression.callee.name)
       {
          case 'describe':
@@ -206,6 +186,7 @@ export default class TestDocGenerator
       expression._tjsdocTestId = uniqueId;
       expression._tjsdocTestName = expression.callee.name + uniqueId;
 
+      // Create the static doc with the next global doc ID and current file / module ID.
       const staticDoc = Docs.TestDoc.create(this._eventbus.triggerSync('tjsdoc:data:docdb:current:id:increment:get'),
        this._moduleID, this._ast, expression, this._pathResolver, tags, this._eventbus);
 
@@ -234,7 +215,7 @@ export default class TestDocGenerator
                {
                   case 'log':
                      this._eventbus.trigger('tjsdoc:system:invalid:code:add',
-                      { filePath: this.filePath, node, fatalError });
+                      { filePath: this._pathResolver.filePath, node, fatalError });
                      break;
 
                   case 'throw':
@@ -245,3 +226,12 @@ export default class TestDocGenerator
       });
    }
 }
+
+// Module private ---------------------------------------------------------------------------------------------------
+
+/**
+ * Provides a symbol to store checking if already covered.
+ * @type {Symbol}
+ * @ignore
+ */
+const s_ALREADY = Symbol('already');
