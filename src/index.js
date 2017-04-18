@@ -3,6 +3,9 @@ import * as Docs           from './doc/';
 import DocGenerator        from './generator/DocGenerator.js';
 import TestDocGenerator    from './generator/TestDocGenerator.js';
 
+// TODO: remove once the old 1-pass algorithm is removed.
+// import DocGeneratorOld     from './generator/DocGeneratorOld.js';
+
 import ASTUtil             from './parser/ASTUtil.js';
 import CommentParser       from './parser/CommentParser.js';
 import ParamParser         from './parser/ParamParser.js';
@@ -35,7 +38,11 @@ export function onPluginLoad(ev)
    eventbus.trigger('plugins:add:all', [
       { name: 'tjsdoc-ast-util', instance: new ASTUtil() },
       { name: 'tjsdoc-comment-parser', instance: new CommentParser() },
+
+      // TODO to enabled to 1-pass algorithm comment out DocGenerator and uncomment DocGeneratorOld
       { name: 'tjsdoc-doc-generator', instance: DocGenerator },
+      // { name: 'tjsdoc-doc-generator', instance: DocGeneratorOld },
+
       { name: 'tjsdoc-param-parser', instance: new ParamParser() },
       { name: 'tjsdoc-test-doc-generator', instance: TestDocGenerator }
    ]);
