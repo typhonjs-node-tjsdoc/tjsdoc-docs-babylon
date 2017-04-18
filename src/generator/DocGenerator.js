@@ -2,14 +2,14 @@ import * as Docs  from '../doc/';
 
 /**
  * Doc generator. Provides static doc object generation for main source files incrementally inserting into the given
- * DocDB. The core algorithm for parsing AST is a two-pass system reserving certain export nodes for a second pass
+ * DocDB. The core algorithm for parsing AST is a 2-pass system marking certain export nodes for a second pass
  * which reference module variables and new class creation. The first pass adds all the doc objects that can be
  * immediately processed to the given DocDB. The second pass will then work over all remaining export nodes which
  * reference previously processed doc objects and perform updates on the existing doc objects for any additional export
  * semantics.
  *
  * The two pass algorithm is preferred as it doesn't require AST modification or copying AST nodes which
- * is necessary for a one pass algorithm. The updates to existing doc objects include modifying `export` / `importStyle`
+ * is necessary for a 1-pass algorithm. The updates to existing doc objects include modifying `export` / `importStyle`
  * which is set in `ModuleDocBase` and `ignore` which is set in `DocBase`. It should be noted that if a module variable
  * or class has the @ignore tag, but is exported the export has higher precedence and will set the doc object to not
  * be ignored unless the @ignore tag is also present on the export. If @ignore is added to any export nodes it is not
@@ -34,9 +34,10 @@ import * as Docs  from '../doc/';
  * standard doc object processing `log` is passed in for `handleError` in `resetAndTraverse` which will post events
  * by `tjsdoc:system:invalid:code:add` which adds a log message to `InvalidCodeLogger` from `tjsdoc-runtime-common`.
  *
- * For the time being the older one pass algorithm is still available for testing purposes and will be removed once
- * an expanded set of docs proves the two pass algorithm is thorough. To enable the one pass algorithm at the end of
- * `resetAndTraverse` comment out `this._traverse()` and uncomment `this._traverseOld()`.
+ * For the time being the older 1-pass algorithm is still available for testing purposes and is located in
+ * `DocGeneratorOld`. To enable the older 1-pass algorithm alter `./src/index.js` and comment out adding `DocGenerator`
+ * for `DocGeneratorOld`. The older 1-pass algorithm will be removed after an expanded set of docs proves the 2-pass
+ * algorithm is thorough.
  *
  * @example
  * DocGenerator.resetAndTraverse(ast, docDB, pathResolver, eventbus);
@@ -49,13 +50,6 @@ export default class DocGenerator
     * @private
     */
    static _exportNodesPass = [];
-
-   /**
-    * Stores an array of already processed class nodes.
-    * @type {ASTNode[]}
-    * @private
-    */
-   static _processedClassNodes = [];
 
    /**
     * Wires up the event binding to get DocGenerator.
@@ -121,8 +115,7 @@ export default class DocGenerator
        */
       this._handleError = handleError;
 
-      // Reset tracking arrays.
-      this._processedClassNodes.length = 0;
+      // Reset 2nd pass export tracking array.
       this._exportNodesPass.length = 0;
 
       // Gets the current global / main plugin DocDB counter doc ID then increment it.
@@ -150,9 +143,6 @@ export default class DocGenerator
       // Performs the two pass traversal algorithm.
       this._traverse();
 
-      // TODO REMOVE: _traverseOld is the original AST modification version
-      // this._traverseOld();
-
       // Reset statically stored data after traversal to make sure all data goes out of scope.
       this._ast = void 0;
       this._docDB = void 0;
@@ -160,152 +150,7 @@ export default class DocGenerator
       this._eventbus = void 0;
       this._handleError = void 0;
       this._moduleID = void 0;
-      this._processedClassNodes.length = 0;
       this._exportNodesPass.length = 0;
-   }
-
-   /**
-    * Create a doc object by node type. First `_decideType` is invoked to determine if the given AST node is a valid
-    * doc object. If so then it is actually processed.
-    *
-    * @param {ASTNode} node - target node.
-    *
-    * @param {Tag[]} tags - tags of target node.
-    *
-    * @returns {AbstractDoc} created Doc.
-    *
-    * @private
-    */
-   static _createDoc(node, tags)
-   {
-      // Decide if there is a doc type to process based on tags and node.
-      const result = this._decideType(tags, node);
-      const type = result.type;
-
-      node = result.node;
-
-      if (!type) { return null; }
-
-      // Store all ModuleClass nodes which provides an inclusion check for class properties / members.
-      if (type === 'ModuleClass') { this._processedClassNodes.push(node); }
-
-      let Clazz;
-
-      switch (type)
-      {
-         case 'ClassMember':
-            Clazz = Docs.ClassMemberDoc;
-            break;
-
-         case 'ClassMethod':
-            Clazz = Docs.ClassMethodDoc;
-            break;
-
-         case 'ClassProperty':
-            Clazz = Docs.ClassPropertyDoc;
-            break;
-
-         case 'ModuleAssignment':
-            Clazz = Docs.ModuleAssignmentDoc;
-            break;
-
-         case 'ModuleClass':
-            Clazz = Docs.ModuleClassDoc;
-            break;
-
-         case 'ModuleFunction':
-            Clazz = Docs.ModuleFunctionDoc;
-            break;
-
-         case 'ModuleVariable':
-            Clazz = Docs.ModuleVariableDoc;
-            break;
-
-         case 'VirtualExternal':
-            Clazz = Docs.VirtualExternalDoc;
-            break;
-
-         case 'VirtualTypedef':
-            Clazz = Docs.VirtualTypedefDoc;
-            break;
-
-         default:
-            throw new Error(`unexpected type: ${type}`);
-      }
-
-      if (!Clazz) { return null; }
-      if (!node.type) { node.type = type; }
-
-      // Create the static doc with the next global doc ID and current file / module ID.
-      return Clazz.create(this._eventbus.triggerSync('tjsdoc:data:docdb:current:id:increment:get'), this._moduleID,
-       this._ast, node, this._pathResolver, tags, this._eventbus);
-   }
-
-   /**
-    * Decide doc object type from class declaration node.
-    *
-    * @param {ASTNode} node - target node that is class declaration node.
-    *
-    * @returns {{type: string, node: ASTNode}} decided type.
-    * @private
-    */
-   static _decideClassDeclarationType(node)
-   {
-      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
-
-      return { type: 'ModuleClass', node };
-   }
-
-   /**
-    * Decide doc object  type from method definition node.
-    *
-    * @param {ASTNode} node - target node that is method definition node.
-    *
-    * @returns {{type: ?string, node: ?ASTNode}} decided type.
-    * @private
-    */
-   static _decideClassMethodDefinitionType(node)
-   {
-      const classNode = this._findUp(node, ['ClassDeclaration', 'ClassExpression']);
-
-      if (this._processedClassNodes.includes(classNode))
-      {
-         return { type: 'ClassMethod', node };
-      }
-      else
-      {
-         const sanitizedNode = this._eventbus.triggerSync('tjsdoc:system:ast:node:sanitize:children', node);
-
-         this._eventbus.trigger('log:warn', 'This method is not in class:', JSON.stringify(sanitizedNode));
-
-         return { type: null, node: null };
-      }
-   }
-
-   /**
-    * Decide doc object type from class property node.
-    *
-    * @param {ASTNode} node - target node that is classs property node.
-    *
-    * @returns {{type: ?string, node: ?ASTNode}} decided type.
-    * @private
-    */
-   static _decideClassPropertyType(node)
-   {
-      const classNode = this._findUp(node, ['ClassDeclaration', 'ClassExpression']);
-
-      if (this._processedClassNodes.includes(classNode))
-      {
-         return { type: 'ClassProperty', node };
-      }
-      else
-      {
-         const sanitizedNode = this._eventbus.triggerSync('tjsdoc:system:ast:node:sanitize:children', node);
-
-         this._eventbus.trigger('log:warn', 'This class property is not in class:', JSON.stringify(sanitizedNode));
-
-         return { type: null, node: null };
-      }
    }
 
    /**
@@ -406,6 +251,21 @@ export default class DocGenerator
       innerNode[s_ALREADY] = true;
 
       return { type: innerType, node: innerNode };
+   }
+
+   /**
+    * Decide ModuleClass doc object type from class declaration nodes. These nodes must be in the AST body / top level.
+    *
+    * @param {ASTNode} node - target node that is class declaration node.
+    *
+    * @returns {{type: string, node: ASTNode}} decided type.
+    * @private
+    */
+   static _decideModuleClassDeclarationType(node)
+   {
+      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
+
+      return { type: 'ModuleClass', node };
    }
 
    /**
@@ -522,13 +382,13 @@ export default class DocGenerator
             return this._decideModuleAssignmentType(node);
 
          case 'ClassDeclaration':
-            return this._decideClassDeclarationType(node);
+            return this._decideModuleClassDeclarationType(node);
 
          case 'ClassMethod':
-            return this._decideClassMethodDefinitionType(node);
+            return { type: 'ClassMethod', node };
 
          case 'ClassProperty':
-            return this._decideClassPropertyType(node);
+            return { type: 'ClassProperty', node };
 
          case 'ExpressionStatement':
             return this._decideExpressionStatementType(node);
@@ -942,6 +802,81 @@ export default class DocGenerator
    }
 
    /**
+    * Processes the AST node via a StaticDoc class which stores the doc object by node type. First `_decideType` is
+    * invoked to determine if the given AST node is a valid doc object. If so then it is processed.
+    *
+    * @param {ASTNode}  node - Target node.
+    *
+    * @param {Tag[]}    tags - Doc tags of target node.
+    *
+    * @returns {StaticDoc} The static doc class which contains the currently processed doc object.
+    *
+    * @private
+    */
+   static _processNode(node, tags)
+   {
+      // Decide if there is a doc type to process based on tags and node.
+      const result = this._decideType(tags, node);
+      const type = result.type;
+
+      node = result.node;
+
+      if (!type) { return null; }
+
+      let StaticDoc;
+
+      // Select the StaticDoc for the give doc object type.
+      switch (type)
+      {
+         case 'ClassMember':
+            StaticDoc = Docs.ClassMemberDoc;
+            break;
+
+         case 'ClassMethod':
+            StaticDoc = Docs.ClassMethodDoc;
+            break;
+
+         case 'ClassProperty':
+            StaticDoc = Docs.ClassPropertyDoc;
+            break;
+
+         case 'ModuleAssignment':
+            StaticDoc = Docs.ModuleAssignmentDoc;
+            break;
+
+         case 'ModuleClass':
+            StaticDoc = Docs.ModuleClassDoc;
+            break;
+
+         case 'ModuleFunction':
+            StaticDoc = Docs.ModuleFunctionDoc;
+            break;
+
+         case 'ModuleVariable':
+            StaticDoc = Docs.ModuleVariableDoc;
+            break;
+
+         case 'VirtualExternal':
+            StaticDoc = Docs.VirtualExternalDoc;
+            break;
+
+         case 'VirtualTypedef':
+            StaticDoc = Docs.VirtualTypedefDoc;
+            break;
+
+         default:
+            throw new Error(`unexpected type: ${type}`);
+      }
+
+      // If no StaticDoc is found exit early.
+      if (!StaticDoc) { return null; }
+
+      // Create the static doc with the next global doc ID and current file / module ID.
+      return StaticDoc.create(this._eventbus.triggerSync('tjsdoc:data:docdb:current:id:increment:get'), this._moduleID,
+       this._ast, node, this._pathResolver, tags, this._eventbus);
+   }
+
+   /**
     * Push a node for generator processing.
     *
     * @param {ASTNode} node - target node.
@@ -1069,7 +1004,7 @@ export default class DocGenerator
 
          if (comment === lastComment)
          {
-            staticDoc = this._createDoc(node, tags);
+            staticDoc = this._processNode(node, tags);
          }
          else
          {
@@ -1077,7 +1012,7 @@ export default class DocGenerator
 
             Reflect.defineProperty(virtualNode, 'parent', { value: parentNode });
 
-            staticDoc = this._createDoc(virtualNode, tags);
+            staticDoc = this._processNode(virtualNode, tags);
          }
 
          // Insert doc and reset.
@@ -1220,350 +1155,6 @@ export default class DocGenerator
          // No existing variable doc has been found, so insert the exported virtual variable doc.
          this._docDB.insertStaticDoc(virtualVarDoc);
       }
-   }
-
-// TODO REMOVE: old original AST modification traversal -------------------------------------------------------------
-
-   /**
-    * Deep copy object.
-    *
-    * @param {Object} obj - target object.
-    *
-    * @return {Object} copied object.
-    * @private
-    */
-   static _copy(obj)
-   {
-      return JSON.parse(JSON.stringify(obj));
-   }
-
-   /**
-    * Inspects ExportDefaultDeclaration.
-    *
-    * case1: separated export
-    *
-    * ```javascript
-    * class Foo {}
-    * export default Foo;
-    * ```
-    *
-    * case2: export instance(directly).
-    *
-    * ```javascript
-    * class Foo {}
-    * export default new Foo();
-    * ```
-    *
-    * case3: export instance(indirectly).
-    *
-    * ```javascript
-    * class Foo {}
-    * let foo = new Foo();
-    * export default foo;
-    * ```
-    *
-    * @private
-    * @todo support function export.
-    */
-   static _inspectExportDefaultDeclaration()
-   {
-      const pseudoExportNodes = [];
-
-      for (const exportNode of this._ast.program.body)
-      {
-         if (exportNode.type !== 'ExportDefaultDeclaration') { continue; }
-
-         let targetClassName = null;
-         let targetVariableName = null;
-         let pseudoClassExport;
-
-         switch (exportNode.declaration.type)
-         {
-            case 'NewExpression':
-               if (exportNode.declaration.callee.type === 'Identifier')
-               {
-                  targetClassName = exportNode.declaration.callee.name;
-               }
-               else if (exportNode.declaration.callee.type === 'MemberExpression')
-               {
-                  targetClassName = exportNode.declaration.callee.property.name;
-               }
-               else
-               {
-                  targetClassName = '';
-               }
-
-               targetVariableName = targetClassName.replace(/^./, (c) => c.toLowerCase());
-               pseudoClassExport = true;
-
-               break;
-
-            case 'Identifier':
-            {
-               const varNode = this._eventbus.triggerSync('tjsdoc:system:ast:variable:declaration:new:expression:find',
-                this._ast, exportNode.declaration.name);
-
-               if (varNode)
-               {
-                  targetClassName = varNode.declarations[0].init.callee.name;
-                  targetVariableName = exportNode.declaration.name;
-                  pseudoClassExport = true;
-
-                  this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', varNode);
-               }
-               else
-               {
-                  targetClassName = exportNode.declaration.name;
-                  pseudoClassExport = false;
-               }
-               break;
-            }
-
-            // Do nothing
-            case 'ArrowFunctionExpression':
-            case 'AssignmentExpression':
-            case 'ClassDeclaration':
-            case 'FunctionExpression':
-            case 'FunctionDeclaration':
-               break;
-
-            default:
-               this._eventbus.trigger('log:warn', `Unknown export declaration type. type = "${
-                exportNode.declaration.type}"`);
-               break;
-         }
-
-         const classNode = this._eventbus.triggerSync('tjsdoc:system:ast:class:declaration:find', this._ast,
-          targetClassName);
-
-         if (classNode)
-         {
-            const pseudoExportNode1 = this._copy(exportNode);
-
-            pseudoExportNode1.declaration = this._copy(classNode);
-            pseudoExportNode1.leadingComments = null;
-            pseudoExportNode1.declaration.__PseudoExport__ = pseudoClassExport;
-
-            pseudoExportNodes.push(pseudoExportNode1);
-
-            if (targetVariableName)
-            {
-               const pseudoExportNode2 = this._copy(exportNode);
-
-               pseudoExportNode2.declaration = this._eventbus.triggerSync(
-                'tjsdoc:system:ast:variable:declaration:new:expression:create', targetVariableName, targetClassName,
-                 exportNode);
-
-               pseudoExportNodes.push(pseudoExportNode2);
-            }
-
-            this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', classNode);
-            this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', exportNode);
-         }
-
-         const functionNode = this._eventbus.triggerSync('tjsdoc:system:ast:function:declaration:find', this._ast,
-          exportNode.declaration.name);
-
-         if (functionNode)
-         {
-            const pseudoExportNode = this._copy(exportNode);
-
-            pseudoExportNode.declaration = this._copy(functionNode);
-
-            this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', exportNode);
-            this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', functionNode);
-
-            pseudoExportNodes.push(pseudoExportNode);
-         }
-
-         const variableNode = this._eventbus.triggerSync('tjsdoc:system:ast:variable:declaration:find', this._ast,
-          exportNode.declaration.name);
-
-         if (variableNode)
-         {
-            const pseudoExportNode = this._copy(exportNode);
-
-            pseudoExportNode.declaration = this._copy(variableNode);
-
-            this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', exportNode);
-            this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', variableNode);
-
-            pseudoExportNodes.push(pseudoExportNode);
-         }
-      }
-
-      this._ast.program.body.push(...pseudoExportNodes);
-   }
-
-   /**
-    * Inspects ExportNamedDeclaration.
-    *
-    * case1: separated export
-    *
-    * ```javascript
-    * class Foo {}
-    * export {Foo};
-    * ```
-    *
-    * case2: export instance(indirectly).
-    *
-    * ```javascript
-    * class Foo {}
-    * let foo = new Foo();
-    * export {foo};
-    * ```
-    *
-    * @private
-    * @todo support function export.
-    */
-   static _inspectExportNamedDeclaration()
-   {
-      const pseudoExportNodes = [];
-
-      for (const exportNode of this._ast.program.body)
-      {
-         if (exportNode.type !== 'ExportNamedDeclaration') { continue; }
-
-         if (exportNode.declaration && exportNode.declaration.type === 'VariableDeclaration')
-         {
-            for (const declaration of exportNode.declaration.declarations)
-            {
-               if (!declaration.init || declaration.init.type !== 'NewExpression') { continue; }
-
-               const classNode = this._eventbus.triggerSync('tjsdoc:system:ast:class:declaration:find', this._ast,
-                declaration.init.callee.name);
-
-               if (classNode)
-               {
-                  const pseudoExportNode = this._copy(exportNode);
-
-                  pseudoExportNode.declaration = this._copy(classNode);
-                  pseudoExportNode.leadingComments = null;
-                  pseudoExportNodes.push(pseudoExportNode);
-                  pseudoExportNode.declaration.__PseudoExport__ = true;
-
-                  this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', classNode);
-               }
-            }
-            continue;
-         }
-
-         for (const specifier of exportNode.specifiers)
-         {
-            if (specifier.type !== 'ExportSpecifier') { continue; }
-
-            let targetClassName = null;
-            let pseudoClassExport;
-
-            const varNode = this._eventbus.triggerSync('tjsdoc:system:ast:variable:declaration:new:expression:find',
-             this._ast, specifier.exported.name);
-
-            if (varNode)
-            {
-               targetClassName = varNode.declarations[0].init.callee.name;
-               pseudoClassExport = true;
-
-               const pseudoExportNode = this._copy(exportNode);
-
-               pseudoExportNode.declaration = this._copy(varNode);
-               pseudoExportNode.specifiers = null;
-               pseudoExportNodes.push(pseudoExportNode);
-
-               this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', varNode);
-            }
-            else
-            {
-               targetClassName = specifier.exported.name;
-               pseudoClassExport = false;
-            }
-
-            const classNode = this._eventbus.triggerSync('tjsdoc:system:ast:class:declaration:find', this._ast,
-             targetClassName);
-
-            if (classNode)
-            {
-               const pseudoExportNode = this._copy(exportNode);
-
-               pseudoExportNode.declaration = this._copy(classNode);
-               pseudoExportNode.leadingComments = null;
-               pseudoExportNode.specifiers = null;
-               pseudoExportNode.declaration.__PseudoExport__ = pseudoClassExport;
-
-               pseudoExportNodes.push(pseudoExportNode);
-
-               this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', classNode);
-            }
-
-            const functionNode = this._eventbus.triggerSync('tjsdoc:system:ast:function:declaration:find', this._ast,
-             specifier.exported.name);
-
-            if (functionNode)
-            {
-               const pseudoExportNode = this._copy(exportNode);
-
-               pseudoExportNode.declaration = this._copy(functionNode);
-               pseudoExportNode.leadingComments = null;
-               pseudoExportNode.specifiers = null;
-
-               this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', functionNode);
-
-               pseudoExportNodes.push(pseudoExportNode);
-            }
-
-            const variableNode = this._eventbus.triggerSync('tjsdoc:system:ast:variable:declaration:find', this._ast,
-             specifier.exported.name);
-
-            if (variableNode)
-            {
-               const pseudoExportNode = this._copy(exportNode);
-
-               pseudoExportNode.declaration = this._copy(variableNode);
-               pseudoExportNode.leadingComments = null;
-               pseudoExportNode.specifiers = null;
-
-               this._eventbus.trigger('tjsdoc:system:ast:node:sanitize', variableNode);
-
-               pseudoExportNodes.push(pseudoExportNode);
-            }
-         }
-      }
-
-      this._ast.program.body.push(...pseudoExportNodes);
-   }
-
-   /**
-    * Traverse doc comments in given file.
-    *
-    * @private
-    */
-   static _traverseOld()
-   {
-      this._inspectExportDefaultDeclaration();
-      this._inspectExportNamedDeclaration();
-
-      this._eventbus.trigger('typhonjs:ast:walker:traverse', this._ast,
-      {
-         enterNode: (node, parent) =>
-         {
-            try
-            {
-               this._push(node, parent);
-            }
-            catch (fatalError)
-            {
-               switch (this._handleError)
-               {
-                  case 'log':
-                     this._eventbus.trigger('tjsdoc:system:invalid:code:add',
-                      { filePath: this._pathResolver.filePath, node, fatalError });
-                     break;
-
-                  case 'throw':
-                     throw fatalError;
-               }
-            }
-         }
-      });
    }
 }
 
