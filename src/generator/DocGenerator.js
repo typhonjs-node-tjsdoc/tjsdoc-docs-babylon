@@ -137,7 +137,7 @@ export default class DocGenerator
       // AST does not have a body or children nodes so only comments are potentially present.
       if (ast.program.body.length === 0 && ast.program.innerComments)
       {
-         this._traverseComments(null, ast, ast.program.innerComments);
+         this._traverseComments(void 0, ast, ast.program.innerComments);
       }
 
       // Performs the two pass traversal algorithm.
@@ -173,7 +173,7 @@ export default class DocGenerator
     */
    static _decideExpressionStatementType(node)
    {
-      if (!node.expression.right) { return { type: null, node: null }; }
+      if (!node.expression.right) { return void 0; }
 
       Reflect.defineProperty(node.expression, 'parent', { value: node });
 
@@ -183,7 +183,7 @@ export default class DocGenerator
 
          // No class node was found in an upward search. In certain situations this could be a function meant to
          // be applied with a particular context for `this`. However, it's not considered a member doc node.
-         if (classNode === null) { return { type: null, node: null }; }
+         if (!classNode) { return void 0; }
 
          node.expression[s_ALREADY] = true;
 
@@ -191,7 +191,7 @@ export default class DocGenerator
       }
       else
       {
-         return { type: null, node: null };
+         return void 0;
       }
    }
 
@@ -205,7 +205,7 @@ export default class DocGenerator
     */
    static _decideModuleArrowFunctionExpressionType(node)
    {
-      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
+      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return void 0; }
 
       return { type: 'ModuleFunction', node };
    }
@@ -225,7 +225,7 @@ export default class DocGenerator
     */
    static _decideModuleAssignmentType(node)
    {
-      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
+      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return void 0; }
 
       let innerType;
 
@@ -263,7 +263,7 @@ export default class DocGenerator
     */
    static _decideModuleClassDeclarationType(node)
    {
-      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
+      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return void 0; }
 
       return { type: 'ModuleClass', node };
    }
@@ -278,7 +278,7 @@ export default class DocGenerator
     */
    static _decideModuleFunctionDeclarationType(node)
    {
-      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
+      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return void 0; }
 
       return { type: 'ModuleFunction', node };
    }
@@ -293,8 +293,8 @@ export default class DocGenerator
     */
    static _decideModuleFunctionExpressionType(node)
    {
-      if (!node.async) { return { type: null, node: null }; }
-      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
+      if (!node.async) { return void 0; }
+      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return void 0; }
 
       return { type: 'ModuleFunction', node };
    }
@@ -309,11 +309,11 @@ export default class DocGenerator
     */
    static _decideModuleVariableType(node)
    {
-      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return { type: null, node: null }; }
+      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return void 0; }
 
-      if (!node.declarations[0].init) { return { type: null, node: null }; }
+      if (!node.declarations[0].init) { return void 0; }
 
-      let innerType = null;
+      let innerType = void 0;
 
       switch (node.declarations[0].init.type)
       {
@@ -346,13 +346,12 @@ export default class DocGenerator
     *
     * @param {ASTNode} node - target node.
     *
-    * @returns {{type: ?string, node: ?ASTNode}} decided type.
+    * @returns {{type: string, node: ASTNode}|undefined} decided type.
     * @private
     */
    static _decideType(tags, node)
    {
-      let type = null;
-
+      // First process tags to find any virtual doc object types. Immediately return if a virtual doc object is found.
       for (const tag of tags)
       {
          const tagName = tag.tagName;
@@ -360,19 +359,14 @@ export default class DocGenerator
          switch (tagName)
          {
             case '@typedef':
-               type = 'VirtualTypedef';
-               break;
+               return { type: 'VirtualTypedef', node };
 
             case '@external':
-               type = 'VirtualExternal';
-               break;
+               return { type: 'VirtualExternal', node };
          }
       }
 
-      if (type) { return { type, node }; }
-
-      if (!node) { return { type, node }; }
-
+      // Process the actual node for any doc object types.
       switch (node.type)
       {
          case 'ArrowFunctionExpression':
@@ -403,7 +397,7 @@ export default class DocGenerator
             return this._decideModuleVariableType(node);
       }
 
-      return { type: null, node: null };
+      return void 0;
    }
 
    /**
@@ -413,7 +407,7 @@ export default class DocGenerator
     *
     * @param {string[]} types - ASTNode types.
     *
-    * @returns {ASTNode|null} found first node.
+    * @returns {ASTNode|undefined} found first node.
     * @private
     */
    static _findUp(node, types)
@@ -427,7 +421,7 @@ export default class DocGenerator
          parent = parent.parent;
       }
 
-      return null;
+      return void 0;
    }
 
    /**
@@ -566,8 +560,8 @@ export default class DocGenerator
    static _processDefaultExport(exportNode)
    {
       const filePath = this._pathResolver.filePath;
-      let targetClassName = null;
-      let targetVariableName = null;
+      let targetClassName = void 0;
+      let targetVariableName = void 0;
       let pseudoClassExport;
 
       switch (exportNode.declaration.type)
@@ -746,7 +740,7 @@ export default class DocGenerator
       {
          if (specifier.type !== 'ExportSpecifier') { continue; }
 
-         let targetClassName = null;
+         let targetClassName = void 0;
          let pseudoClassExport;
 
          const varNode = this._eventbus.triggerSync('tjsdoc:system:ast:variable:declaration:new:expression:find',
@@ -817,16 +811,15 @@ export default class DocGenerator
    {
       // Decide if there is a doc type to process based on tags and node.
       const result = this._decideType(tags, node);
-      const type = result.type;
 
-      node = result.node;
+      // No doc object type has been found so exit early.
+      if (!result) { return void 0; }
 
-      if (!type) { return null; }
-
+      // Stores the associated StaticDoc for the give doc object type.
       let StaticDoc;
 
-      // Select the StaticDoc for the give doc object type.
-      switch (type)
+      // Select the StaticDoc for the given doc object type.
+      switch (result.type)
       {
          case 'ClassMember':
             StaticDoc = Docs.ClassMemberDoc;
@@ -865,15 +858,15 @@ export default class DocGenerator
             break;
 
          default:
-            throw new Error(`unexpected type: ${type}`);
+            throw new Error(`Unexpected type: ${result.type}`);
       }
 
       // If no StaticDoc is found exit early.
-      if (!StaticDoc) { return null; }
+      if (!StaticDoc) { return void 0; }
 
       // Create the static doc with the next global doc ID and current file / module ID.
       return StaticDoc.create(this._eventbus.triggerSync('tjsdoc:data:docdb:current:id:increment:get'), this._moduleID,
-       this._ast, node, this._pathResolver, tags, this._eventbus);
+       this._ast, result.node, this._pathResolver, tags, this._eventbus);
    }
 
    /**
@@ -945,6 +938,7 @@ export default class DocGenerator
          }
       });
 
+      // Performs the 2nd pass of export nodes that need further processing.
       this._processExports();
    }
 
@@ -1047,7 +1041,7 @@ export default class DocGenerator
       // For trailing comments traverse with only last node preventing duplication of trailing comments.
       if (node.trailingComments && isLastNodeInParent)
       {
-         this._traverseComments(null, parentNode, node.trailingComments);
+         this._traverseComments(void 0, parentNode, node.trailingComments);
       }
    }
 
@@ -1093,7 +1087,7 @@ export default class DocGenerator
       // For trailing comments traverse with only last node preventing duplication of trailing comments.
       if (trailingComments.length > 0 && isLastNodeInParent)
       {
-         this._traverseComments(null, node, trailingComments);
+         this._traverseComments(void 0, node, trailingComments);
       }
    }
 
