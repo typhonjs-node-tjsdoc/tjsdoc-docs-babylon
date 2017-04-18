@@ -1,14 +1,42 @@
 import * as Docs  from '../doc/';
 
 /**
- * Provides a symbol to store checking if already covered.
- * @type {Symbol}
- * @ignore
- */
-const s_ALREADY = Symbol('already');
-
-/**
- * Doc generator. Provides static doc object generation for main source files inserting into the given DocDB.
+ * Doc generator. Provides static doc object generation for main source files incrementally inserting into the given
+ * DocDB. The core algorithm for parsing AST is a two-pass system reserving certain export nodes for a second pass
+ * which reference module variables and new class creation. The first pass adds all the doc objects that can be
+ * immediately processed to the given DocDB. The second pass will then work over all remaining export nodes which
+ * reference previously processed doc objects and perform updates on the existing doc objects for any additional export
+ * semantics.
+ *
+ * The two pass algorithm is preferred as it doesn't require AST modification or copying AST nodes which
+ * is necessary for a one pass algorithm. The updates to existing doc objects include modifying `export` / `importStyle`
+ * which is set in `ModuleDocBase` and `ignore` which is set in `DocBase`. It should be noted that if a module variable
+ * or class has the @ignore tag, but is exported the export has higher precedence and will set the doc object to not
+ * be ignored unless the @ignore tag is also present on the export. If @ignore is added to any export nodes it is not
+ * processed in the second pass.
+ *
+ * An event binding, `tjsdoc:system:doc:generator:get` is available which simply returns DocGenerator. This is used in
+ * `tjsdoc-runtime-common` / `GenerateDocData` which controls the doc generation process providing additional event
+ * bindings for generating docs for main and test sources along with creating a DocDB or using one that is passed into
+ * these bindings along with generating any AST for source to process.
+ *
+ * The main entry point for doc generation is `resetAndTraverse`. It should be noted that to process in memory code
+ * the final `code` parameter should include the in memory source otherwise if this is not provided the AST passed in
+ * is considered a source code from a file.
+ *
+ * Each doc object created gets a unique ID which is retrieved by the event binding
+ * `tjsdoc:data:docdb:current:id:increment:get` which is the main DocDB added to the eventbus. This isn't necessarily
+ * the given DocDB which is being processed. By getting the incremented unique ID from the main DocDB this allows
+ * all doc objects generated to have a consistent ID which allows easy merging with other DocDB instances (like the main
+ * one!).
+ *
+ * Error handling has two options: `log` and `throw` with the default to throw any errors encountered. However in
+ * standard doc object processing `log` is passed in for `handleError` in `resetAndTraverse` which will post events
+ * by `tjsdoc:system:invalid:code:add` which adds a log message to `InvalidCodeLogger` from `tjsdoc-runtime-common`.
+ *
+ * For the time being the older one pass algorithm is still available for testing purposes and will be removed once
+ * an expanded set of docs proves the two pass algorithm is thorough. To enable the one pass algorithm at the end of
+ * `resetAndTraverse` comment out `this._traverse()` and uncomment `this._traverseOld()`.
  *
  * @example
  * DocGenerator.resetAndTraverse(ast, docDB, pathResolver, eventbus);
@@ -46,16 +74,16 @@ export default class DocGenerator
     *
     * @param {DocDB}          docDB - The target DocDB.
     *
-    * @param {PathResolver}   pathResolver - The path resolver of source code.
+    * @param {PathResolver}   pathResolver - The path resolver for the source code.
     *
     * @param {EventProxy}     eventbus - An event proxy for the plugin eventbus.
     *
-    * @param {string}         handleError - Determines how to handle errors. Options are `log` and `throw` with the
-    *                                       default being to throw any errors encountered.
+    * @param {string}         [handleError='throw'] - Determines how to handle errors. Options are `log` and `throw`
+    *                                                 with the default being to throw any errors encountered.
     *
     * @param {String}         [code] - Designates that the ast is from an in memory source rather than a file.
     */
-   static resetAndTraverse(ast, docDB, pathResolver, eventbus, handleError, code = void 0)
+   static resetAndTraverse(ast, docDB, pathResolver, eventbus, handleError = 'throw', code = void 0)
    {
       /**
        * AST of source code.
@@ -119,12 +147,13 @@ export default class DocGenerator
          this._traverseComments(null, ast, ast.program.innerComments);
       }
 
+      // Performs the two pass traversal algorithm.
       this._traverse();
 
       // TODO REMOVE: _traverseOld is the original AST modification version
       // this._traverseOld();
 
-      // Reset statically stored data after traversal.
+      // Reset statically stored data after traversal to make sure all data goes out of scope.
       this._ast = void 0;
       this._docDB = void 0;
       this._pathResolver = void 0;
@@ -136,7 +165,8 @@ export default class DocGenerator
    }
 
    /**
-    * Create a doc object by node type.
+    * Create a doc object by node type. First `_decideType` is invoked to determine if the given AST node is a valid
+    * doc object. If so then it is actually processed.
     *
     * @param {ASTNode} node - target node.
     *
@@ -734,6 +764,7 @@ export default class DocGenerator
       {
          classDoc[0].importStyle = pseudoClassExport ? null : targetClassName;
          classDoc[0].export = true;
+         classDoc[0].ignore = false;
 
          if (targetVariableName) { this._updateOrCreateVarDoc(targetVariableName, targetClassName, exportNode); }
       }
@@ -1535,3 +1566,12 @@ export default class DocGenerator
       });
    }
 }
+
+// Module private ---------------------------------------------------------------------------------------------------
+
+/**
+ * Provides a symbol to store checking if already covered.
+ * @type {Symbol}
+ * @ignore
+ */
+const s_ALREADY = Symbol('already');
