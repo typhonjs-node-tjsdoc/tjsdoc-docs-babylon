@@ -94,9 +94,9 @@ export default class ClassMethodDoc extends ClassMethodDocBase
 
       if (this._value.return) { return; }
 
-      this._ensureApplied('_$category');
+      this._ensureApplied('_$qualifier');
 
-      switch (this._value.category)
+      switch (this._value.qualifier)
       {
          case 'constructor':
          case 'get':
@@ -127,9 +127,9 @@ export default class ClassMethodDoc extends ClassMethodDocBase
 
       if (this._value.type) { return; }
 
-      this._ensureApplied('_$category');
+      this._ensureApplied('_$qualifier');
 
-      switch (this._value.category)
+      switch (this._value.qualifier)
       {
          case 'set':
             this._value.type = this._eventbus.triggerSync('tjsdoc:system:parser:param:type:guess', this._node.right);
