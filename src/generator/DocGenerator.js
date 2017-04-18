@@ -166,17 +166,19 @@ export default class DocGenerator
     *    }
     * }
     *
-    * @param {ASTNode} node - target node that is expression statement node.
+    * @param {ASTNode} node - Target node that is an expression statement node.
     *
-    * @returns {{type: ?string, node: ?ASTNode}} decided type.
+    * @returns {DocObjectType|undefined} Decided DocObjectType or undefined.
     * @private
     */
    static _decideExpressionStatementType(node)
    {
       if (!node.expression.right) { return void 0; }
 
+      // Add parent `node` to `node.expression`.
       Reflect.defineProperty(node.expression, 'parent', { value: node });
 
+      // If the expression is a member expression with `this` as the left hand type determine if
       if (node.expression.left.type === 'MemberExpression' && node.expression.left.object.type === 'ThisExpression')
       {
          const classNode = this._findUp(node.expression, ['ClassExpression', 'ClassDeclaration']);
@@ -196,36 +198,38 @@ export default class DocGenerator
    }
 
    /**
-    * Decide doc object type from arrow function expression node.
+    * Decide ModuleFunction doc object type from arrow function expression nodes from the top level body.
     *
-    * @param {ASTNode} node - target node that is arrow function expression node.
+    * @param {ASTNode} node - Target node that is an arrow function expression node.
     *
-    * @returns {{type: string, node: ASTNode}} decided type.
+    * @returns {DocObjectType|undefined} Decided DocObjectType or undefined.
     * @private
     */
    static _decideModuleArrowFunctionExpressionType(node)
    {
-      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return void 0; }
+      if (!this._isTopDepthInBody(node)) { return void 0; }
 
       return { type: 'ModuleFunction', node };
    }
 
    /**
-    * Decide doc object type from `AssignmentExpression` node.
+    * Decide ModuleAssignment doc object type from `AssignmentExpression` nodes from the top level body. If the right
+    * node type is `ArrowFunctionExpression`, `ClassExpression` or `FunctionExpression` The inner type and node is
+    * returned as `ModuleClass` or `ModuleFunction` types with the inner node.
     *
     * @example
     * export default functionName = function() {}
     * export default functionName = () => {}
     * export default ClassName = class {}
     *
-    * @param {ASTNode} node - target node that is assignment node.
+    * @param {ASTNode} node - Target node that is an assignment node.
     *
-    * @returns {{type: string, node: ASTNode}} decided type.
+    * @returns {DocObjectType|undefined} Decided DocObjectType or undefined.
     * @private
     */
    static _decideModuleAssignmentType(node)
    {
-      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return void 0; }
+      if (!this._isTopDepthInBody(node)) { return void 0; }
 
       let innerType;
 
@@ -256,60 +260,63 @@ export default class DocGenerator
    /**
     * Decide ModuleClass doc object type from class declaration nodes. These nodes must be in the AST body / top level.
     *
-    * @param {ASTNode} node - target node that is class declaration node.
+    * @param {ASTNode} node - Target node that is a class declaration node.
     *
-    * @returns {{type: string, node: ASTNode}} decided type.
+    * @returns {DocObjectType|undefined} Decided DocObjectType or undefined.
     * @private
     */
    static _decideModuleClassDeclarationType(node)
    {
-      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return void 0; }
+      if (!this._isTopDepthInBody(node)) { return void 0; }
 
       return { type: 'ModuleClass', node };
    }
 
    /**
-    * Decide doc object type from function declaration node.
+    * Decide ModuleFunction doc object type from function declaration nodes. These nodes must be in the AST body / top
+    * level.
     *
-    * @param {ASTNode} node - target node that is function declaration node.
+    * @param {ASTNode} node - Target node that is a function declaration node.
     *
-    * @returns {{type: string, node: ASTNode}} decided type.
+    * @returns {DocObjectType} Decided DocObjectType or undefined.
     * @private
     */
    static _decideModuleFunctionDeclarationType(node)
    {
-      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return void 0; }
+      if (!this._isTopDepthInBody(node)) { return void 0; }
 
       return { type: 'ModuleFunction', node };
    }
 
    /**
-    * Decide doc object type from function expression node.
+    * Decide ModuleFunction doc object type from function expression nodes. These nodes must be in the AST body / top
+    * level.
     *
-    * @param {ASTNode} node - target node that is function expression node.
+    * @param {ASTNode} node - Target node that is a function expression node.
     *
-    * @returns {{type: string, node: ASTNode}} decided type.
+    * @returns {DocObjectType|undefined} Decided DocObjectType or undefined.
     * @private
     */
    static _decideModuleFunctionExpressionType(node)
    {
-      if (!node.async) { return void 0; }
-      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return void 0; }
+      if (!node.async || !this._isTopDepthInBody(node)) { return void 0; }
 
       return { type: 'ModuleFunction', node };
    }
 
    /**
-    * Decide doc object type from variable node.
+    * Decide ModuleVariable doc object type from `VariableDeclaration` nodes from the top level body. If the right
+    * node type is `ArrowFunctionExpression`, `ClassExpression` or `FunctionExpression` The inner type and node is
+    * returned as `ModuleClass` or `ModuleFunction` types.
     *
-    * @param {ASTNode} node - target node that is variable node.
+    * @param {ASTNode} node - Target node that is variable declaration node.
     *
-    * @returns {{type: string, node: ASTNode}} decided type.
+    * @returns {DocObjectType|undefined} Decided DocObjectType or undefined.
     * @private
     */
    static _decideModuleVariableType(node)
    {
-      if (!this._isTopDepthInBody(node, this._ast.program.body)) { return void 0; }
+      if (!this._isTopDepthInBody(node)) { return void 0; }
 
       if (!node.declarations[0].init) { return void 0; }
 
@@ -340,16 +347,16 @@ export default class DocGenerator
    }
 
    /**
-    * Decide doc object type by using tags and node.
+    * Decide doc object type by using the given node and documentation tags.
     *
-    * @param {Tag[]} tags - tags of node.
+    * @param {ASTNode}  node - Target node.
     *
-    * @param {ASTNode} node - target node.
+    * @param {Tag[]}    tags - Documentation Tags of the node.
     *
-    * @returns {{type: string, node: ASTNode}|undefined} decided type.
+    * @returns {DocObjectType|undefined} Decided DocObjectType or undefined.
     * @private
     */
-   static _decideType(tags, node)
+   static _decideType(node, tags)
    {
       // First process tags to find any virtual doc object types. Immediately return if a virtual doc object is found.
       for (const tag of tags)
@@ -401,13 +408,14 @@ export default class DocGenerator
    }
 
    /**
-    * Find node while traversing up the parent tree.
+    * Find node while traversing up the parent tree. This is used to verify that a parent node exists such as
+    * ClassDeclaration / ClassExpression.
     *
-    * @param {ASTNode} node - start node.
+    * @param {ASTNode}  node - Starting node.
     *
-    * @param {string[]} types - ASTNode types.
+    * @param {string[]} types - ASTNode types to find.
     *
-    * @returns {ASTNode|undefined} found first node.
+    * @returns {ASTNode|undefined} The first node matched.
     * @private
     */
    static _findUp(node, types)
@@ -446,18 +454,22 @@ export default class DocGenerator
       }
       else if (node.type === 'ExportNamedDeclaration')
       {
+         // Any named export with specifiers needs to be processed in a second pass.
          if (node.specifiers.length > 0)
          {
             this._exportNodesPass.push(node);
             return true;
          }
 
+         // Any named export which references a variable that is a new expression node (new Class()) needs to be
+         // processed in second pass.
          if ((node.declaration && node.declaration.type === 'VariableDeclaration'))
          {
             for (const declaration of node.declaration.declarations)
             {
                if (!declaration.init || declaration.init.type !== 'NewExpression') { continue; }
 
+               // Find the matching class node and if found then add this export node for further processing.
                const classNode = this._eventbus.triggerSync('tjsdoc:system:ast:class:declaration:find', this._ast,
                 declaration.init.callee.name);
 
@@ -474,18 +486,18 @@ export default class DocGenerator
    }
 
    /**
-    * Determine if node is the last in parent.
+    * Determine if node is the last in parent body array.
     *
-    * @param {ASTNode} node - target node.
+    * @param {ASTNode} node - Target node.
     *
-    * @param {ASTNode} parentNode - target parent node.
+    * @param {ASTNode} parentNode - Target parent node.
     *
-    * @returns {boolean} if true, the node is last in parent.
+    * @returns {boolean} True if the node is last in parent body array.
     * @private
     */
    static _isLastNodeInParent(node, parentNode)
    {
-      if (parentNode && parentNode.body)
+      if (parentNode && Array.isArray(parentNode.body))
       {
          const lastNode = parentNode.body[parentNode.body.length - 1];
          return node === lastNode;
@@ -495,20 +507,15 @@ export default class DocGenerator
    }
 
    /**
-    * Determine if the node is at the top in body.
+    * Determine if the node is at the top program node body. Direct child nodes of exports are considered top level.
     *
-    * @param {ASTNode} node - target node.
+    * @param {ASTNode} node - Target node.
     *
-    * @param {ASTNode[]} body - target body node.
-    *
-    * @returns {boolean} if true, the node is top in body.
+    * @returns {boolean} True if the node is in top program node body.
     * @private
     */
-   static _isTopDepthInBody(node, body)
+   static _isTopDepthInBody(node)
    {
-      if (!body) { return false; }
-      if (!Array.isArray(body)) { return false; }
-
       const parentNode = node.parent;
 
       switch (parentNode.type)
@@ -519,16 +526,17 @@ export default class DocGenerator
             break;
       }
 
-      for (const _node of body)
-      {
-         if (node === _node) { return true; }
-      }
-
-      return false;
+      // Babylon has a `Program` that contains the main program `body`.
+      return node.parent.type === 'Program';
    }
 
    /**
-    * Performs second pass processing of default export nodes.
+    * Performs second pass processing of default export nodes. The target class, function or variable referenced
+    * by the export node is found in the DocDB and the existing DocObject is updated with any applicable export
+    * semantics.
+    *
+    * If a class is being exported by a new expression call the class and a newly synthesized variable node is output.
+    * The variable node for implicit exports such as `export default new MyClass()` is named `myClass`.
     *
     * case1: separated export
     *
@@ -552,7 +560,7 @@ export default class DocGenerator
     * export default foo;
     * ```
 
-    * @param {ASTNode}  exportNode - target default export to process.
+    * @param {ASTNode}  exportNode - Target default export to process.
     *
     * @private
     * @todo support function export.
@@ -580,6 +588,8 @@ export default class DocGenerator
                targetClassName = '';
             }
 
+            // Determine variable name to synthesize from the target class name with the first character converted to
+            // lower case.
             targetVariableName = targetClassName.replace(/^./, (c) => c.toLowerCase());
             pseudoClassExport = true;
 
@@ -614,7 +624,7 @@ export default class DocGenerator
 
       const classDoc = this._docDB.find({ name: targetClassName, filePath });
 
-      if (Array.isArray(classDoc) && classDoc.length > 0)
+      if (classDoc.length > 0)
       {
          classDoc[0].importStyle = pseudoClassExport ? null : targetClassName;
          classDoc[0].export = true;
@@ -625,7 +635,7 @@ export default class DocGenerator
 
       const funcDoc = this._docDB.find({ name: exportNode.declaration.name, filePath });
 
-      if (Array.isArray(funcDoc) && funcDoc.length > 0)
+      if (funcDoc.length > 0)
       {
          funcDoc[0].importStyle = exportNode.declaration.name;
          funcDoc[0].export = true;
@@ -634,7 +644,7 @@ export default class DocGenerator
 
       const varDoc = this._docDB.find({ name: exportNode.declaration.name, filePath });
 
-      if (Array.isArray(varDoc) && varDoc.length > 0)
+      if (varDoc.length > 0)
       {
          varDoc[0].importStyle = exportNode.declaration.name;
          varDoc[0].export = true;
@@ -653,7 +663,8 @@ export default class DocGenerator
       {
          let exportNodeHasIgnoreTag = false;
 
-         // Parse any leading comments from the given export node to find `@ignore`.
+         // Parse any leading comments from the given export node to find `@ignore`. Second pass processing is skipped
+         // for export nodes which have an `@ignore` documentation tag.
          if (Array.isArray(exportNode.leadingComments) && exportNode.leadingComments.length > 0)
          {
             const exportNodeTags = this._eventbus.triggerSync('tjsdoc:system:parser:comment:parse',
@@ -682,7 +693,9 @@ export default class DocGenerator
    }
 
    /**
-    * Performs second pass processing of named export nodes.
+    * Performs second pass processing of named export nodes. The target class, function or variable referenced
+    * by the export node is found in the DocDB and the existing DocObject is updated with any applicable export
+    * semantics.
     *
     * case1: separated export
     *
@@ -750,7 +763,7 @@ export default class DocGenerator
          {
             const varDoc = this._docDB.find({ name: specifier.exported.name, filePath });
 
-            if (Array.isArray(varDoc) && varDoc.length > 0)
+            if (varDoc.length > 0)
             {
                varDoc[0].importStyle = `{${specifier.exported.name}}`;
                varDoc[0].export = true;
@@ -768,7 +781,7 @@ export default class DocGenerator
 
          const classDoc = this._docDB.find({ name: specifier.exported.name, filePath });
 
-         if (Array.isArray(classDoc) && classDoc.length > 0)
+         if (classDoc.length > 0)
          {
             classDoc[0].importStyle = pseudoClassExport ? null : `{${targetClassName}}`;
             classDoc[0].export = true;
@@ -777,7 +790,7 @@ export default class DocGenerator
 
          const funcDoc = this._docDB.find({ name: specifier.exported.name, filePath });
 
-         if (Array.isArray(funcDoc) && funcDoc.length > 0)
+         if (funcDoc.length > 0)
          {
             funcDoc[0].importStyle = `{${specifier.exported.name}}`;
             funcDoc[0].export = true;
@@ -786,7 +799,7 @@ export default class DocGenerator
 
          const varDoc = this._docDB.find({ name: specifier.exported.name, filePath });
 
-         if (Array.isArray(varDoc) && varDoc.length > 0)
+         if (varDoc.length > 0)
          {
             varDoc[0].importStyle = `{${specifier.exported.name}}`;
             varDoc[0].export = true;
@@ -796,8 +809,9 @@ export default class DocGenerator
    }
 
    /**
-    * Processes the AST node via a StaticDoc class which stores the doc object by node type. First `_decideType` is
-    * invoked to determine if the given AST node is a valid doc object. If so then it is processed.
+    * Processes the AST node via any matched StaticDoc class which stores the doc object by node type. First
+    * `_decideType` is invoked to determine if the given AST node is a valid doc object type. If so then it is
+    * processed.
     *
     * @param {ASTNode}  node - Target node.
     *
@@ -810,7 +824,7 @@ export default class DocGenerator
    static _processNode(node, tags)
    {
       // Decide if there is a doc type to process based on tags and node.
-      const result = this._decideType(tags, node);
+      const result = this._decideType(node, tags);
 
       // No doc object type has been found so exit early.
       if (!result) { return void 0; }
@@ -872,9 +886,9 @@ export default class DocGenerator
    /**
     * Push a node for generator processing.
     *
-    * @param {ASTNode} node - target node.
+    * @param {ASTNode} node - Target node.
     *
-    * @param {ASTNode} parentNode - parent node of target node.
+    * @param {ASTNode} parentNode - Parent node of target node.
     */
    static _push(node, parentNode)
    {
@@ -886,11 +900,12 @@ export default class DocGenerator
 
       node[s_ALREADY] = true;
 
+      // Add parent to node to allow upward traversal.
       Reflect.defineProperty(node, 'parent', { value: parentNode });
 
       switch (node.type)
       {
-         // Unwrap export declaration
+         // Unwrap export declarations and traverse.
          case 'ExportDefaultDeclaration':
          case 'ExportNamedDeclaration':
             this._unwrapExportNodeAndTraverse(node, isLastNodeInParent);
@@ -945,11 +960,11 @@ export default class DocGenerator
    /**
     * Traverses comments of node and creates any applicable doc objects.
     *
-    * @param {?ASTNode} node - target node.
+    * @param {?ASTNode}    node - Target node. If not supplied then a virtual node is created.
     *
-    * @param {ASTNode|AST} parentNode - parent of target node.
+    * @param {ASTNode}     parentNode - parent of target node.
     *
-    * @param {ASTNode[]} comments - comment nodes.
+    * @param {ASTNode[]}   comments - comment nodes.
     *
     * @private
     */
@@ -983,10 +998,8 @@ export default class DocGenerator
          comments = [];
       }
 
-      if (comments.length === 0)
-      {
-         comments = [{ type: 'CommentBlock', value: '* @_undocument' }];
-      }
+      // Synthesize undocument tag if no comments exist.
+      if (comments.length === 0) { comments = [{ type: 'CommentBlock', value: '* @_undocument' }]; }
 
       const lastComment = comments[comments.length - 1];
 
@@ -1050,7 +1063,7 @@ export default class DocGenerator
     *
     * @param {ASTNode} node - target node that is export declaration node.
     *
-    * @param {boolean} isLastNodeInParent - indicates the node is the last in its parent node.
+    * @param {boolean} isLastNodeInParent - Indicates the node is the last in its parent node body.
     *
     * @private
     */
