@@ -19,16 +19,6 @@ export default class TestDocGenerator
    static _type = void 0;
 
    /**
-    * Wires up the event binding to get TestDocGenerator.
-    *
-    * @param {PluginEvent} ev - The plugin event.
-    */
-   static onPluginLoad(ev)
-   {
-      ev.eventbus.on('tjsdoc:system:doc:generator:test:get', () => TestDocGenerator);
-   }
-
-   /**
     * Sets any test type from the target project TJSDocConfig instance. By setting the test type in `onPreGenerate`
     * it is possible to provide the same method signature for `resetAndTraverse` as `DocGenerator`.
     *

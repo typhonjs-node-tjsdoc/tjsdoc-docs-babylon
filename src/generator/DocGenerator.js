@@ -52,16 +52,6 @@ export default class DocGenerator
    static _exportNodesPass = [];
 
    /**
-    * Wires up the event binding to get DocGenerator.
-    *
-    * @param {PluginEvent} ev - The plugin event.
-    */
-   static onPluginLoad(ev)
-   {
-      ev.eventbus.on('tjsdoc:system:doc:generator:get', () => DocGenerator);
-   }
-
-   /**
     * Resets DocGenerator and traverses code for doc object / docDB insertion.
     *
     * @param {AST}            ast - AST of source code.
