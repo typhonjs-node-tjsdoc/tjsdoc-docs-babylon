@@ -516,7 +516,7 @@ export default class DocGenerator
             break;
       }
 
-      // Babylon has a `Program` that contains the main program `body`.
+      // Babylon has a `Program` node that contains the main program `body`.
       return node.parent.type === 'Program';
    }
 
@@ -643,7 +643,9 @@ export default class DocGenerator
    }
 
    /**
-    * Dispatches second pass processing for export nodes that require further processing.
+    * Dispatches second pass processing for export nodes that require further processing. Leading comments are parsed
+    * for the existence of the `@ignore` tag. If it is found then second pass processing is skipped for that export
+    * node.
     *
     * @private
     */
