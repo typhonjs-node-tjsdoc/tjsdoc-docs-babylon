@@ -40,10 +40,13 @@ export default class TestDocGenerator
     *
     * @param {EventProxy}     eventbus - An event proxy for the main eventbus.
     *
-    * @param {string}         handleError - Determines how to handle errors. Options are `log` and `throw` with the
-    *                                       default being to throw any errors encountered.
+    * @param {string}         [handleError='throw'] - Determines how to handle errors. Options are `log` and `throw`
+    *                                                 with the default being to throw any errors encountered.
+    *
+    * @param {function}       [docFilter] - An optional function invoked with the static doc before inserting into the
+    *                                       given DocDB.
     */
-   static resetAndTraverse(ast, docDB, pathResolver, eventbus, handleError)
+   static resetAndTraverse({ ast, docDB, pathResolver, eventbus, handleError = 'throw', docFilter = void 0 } = {})
    {
       if (typeof ast !== 'object') { throw new TypeError(`'ast' is not an 'object'.`); }
 
@@ -80,6 +83,13 @@ export default class TestDocGenerator
        */
       this._handleError = handleError;
 
+      /**
+       * Optional function to invoke before a static doc is added to the given DocDB.
+       * @type {Function}
+       * @private
+       */
+      this._docFilter = docFilter;
+
       // Gets the current global / main plugin DocDB counter doc ID then increment it.
       const docID = eventbus.triggerSync('tjsdoc:data:docdb:current:id:increment:get');
 
@@ -93,7 +103,7 @@ export default class TestDocGenerator
       const staticDoc = Docs.ModuleTestFileDoc.create(docID, ast, ast, pathResolver, [], this._eventbus);
 
       // Insert test file doc and reset.
-      this._docDB.insertStaticDoc(staticDoc);
+      this._insertStaticDoc(staticDoc);
 
       this._traverse();
    }
@@ -109,6 +119,18 @@ export default class TestDocGenerator
       if (!this._sequence) { /** @type {number} */ this._sequence = 0; }
 
       return this._sequence++;
+   }
+
+   /**
+    * Inserts a doc into the associated DocDB after running any optionally supplied doc filter.
+    *
+    * @param {DocObject}   staticDoc - Static doc object to insert into the associated DocDB.
+    *
+    * @private
+    */
+   static _insertStaticDoc(staticDoc)
+   {
+      this._docDB.insertStaticDoc(staticDoc, this._docFilter);
    }
 
    /**
@@ -181,7 +203,7 @@ export default class TestDocGenerator
        this._moduleID, this._ast, expression, this._pathResolver, tags, this._eventbus);
 
       // Insert test doc and reset.
-      this._docDB.insertStaticDoc(staticDoc);
+      this._insertStaticDoc(staticDoc);
    }
 
    /**

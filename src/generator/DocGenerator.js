@@ -66,8 +66,12 @@ export default class DocGenerator
     *                                                 with the default being to throw any errors encountered.
     *
     * @param {String}         [code] - Designates that the ast is from an in memory source rather than a file.
+    *
+    * @param {function}       [docFilter] - An optional function invoked with the static doc before inserting into the
+    *                                       given DocDB.
     */
-   static resetAndTraverse(ast, docDB, pathResolver, eventbus, handleError = 'throw', code = void 0)
+   static resetAndTraverse(
+    { ast, docDB, pathResolver, eventbus, handleError = 'throw', code = void 0, docFilter = void 0 } = {})
    {
       /**
        * AST of source code.
@@ -105,6 +109,13 @@ export default class DocGenerator
        */
       this._handleError = handleError;
 
+      /**
+       * Optional function to invoke before a static doc is added to the given DocDB.
+       * @type {Function}
+       * @private
+       */
+      this._docFilter = docFilter;
+
       // Reset 2nd pass export tracking array.
       this._exportNodesPass.length = 0;
 
@@ -116,7 +127,7 @@ export default class DocGenerator
        this._eventbus, code) : Docs.ModuleFileDoc.create(docID, ast, ast, pathResolver, [], this._eventbus);
 
       // Insert file or memory doc and reset.
-      this._docDB.insertStaticDoc(staticDoc);
+      this._insertStaticDoc(staticDoc);
 
       /**
        * Store the docID for the memory / file and add it to all children doc data as `__moduleID__`.
@@ -420,6 +431,18 @@ export default class DocGenerator
       }
 
       return void 0;
+   }
+
+   /**
+    * Inserts a doc into the associated DocDB after running any optionally supplied doc filter.
+    *
+    * @param {DocObject}   staticDoc - Static doc object to insert into the associated DocDB.
+    *
+    * @private
+    */
+   static _insertStaticDoc(staticDoc)
+   {
+      this._docDB.insertStaticDoc(staticDoc, this._docFilter);
    }
 
    /**
@@ -1015,7 +1038,7 @@ export default class DocGenerator
          }
 
          // Insert doc and reset.
-         if (staticDoc) { this._docDB.insertStaticDoc(staticDoc); }
+         if (staticDoc) { this._insertStaticDoc(staticDoc); }
       }
    }
 
@@ -1152,7 +1175,7 @@ export default class DocGenerator
          virtualVarDoc._value.type = { types: [`${filePath}~${targetClassName}`] };
 
          // No existing variable doc has been found, so insert the exported virtual variable doc.
-         this._docDB.insertStaticDoc(virtualVarDoc);
+         this._insertStaticDoc(virtualVarDoc);
       }
    }
 }
