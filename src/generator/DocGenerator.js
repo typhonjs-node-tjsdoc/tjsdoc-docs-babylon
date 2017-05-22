@@ -436,7 +436,7 @@ export default class DocGenerator
    /**
     * Inserts a doc into the associated DocDB after running any optionally supplied doc filter.
     *
-    * @param {DocObject}   staticDoc - Static doc object to insert into the associated DocDB.
+    * @param {StaticDoc}   staticDoc - Static doc object to insert into the associated DocDB.
     *
     * @private
     */
