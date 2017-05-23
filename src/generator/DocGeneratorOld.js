@@ -46,16 +46,6 @@ export default class DocGeneratorOld
    static _processedClassNodes = [];
 
    /**
-    * Wires up the event binding to get DocGenerator.
-    *
-    * @param {PluginEvent} ev - The plugin event.
-    */
-   static onPluginLoad(ev)
-   {
-      ev.eventbus.on('tjsdoc:system:doc:generator:get', () => DocGeneratorOld);
-   }
-
-   /**
     * Resets DocGenerator and traverses code for doc object / docDB insertion.
     *
     * @param {AST}            ast - AST of source code.
@@ -70,8 +60,12 @@ export default class DocGeneratorOld
     *                                                 with the default being to throw any errors encountered.
     *
     * @param {String}         [code] - Designates that the ast is from an in memory source rather than a file.
+    *
+    * @param {function}       [docFilter] - An optional function invoked with the static doc before inserting into the
+    *                                       given DocDB.
     */
-   static resetAndTraverse(ast, docDB, pathResolver, eventbus, handleError = 'throw', code = void 0)
+   static resetAndTraverse(
+    { ast, docDB, pathResolver, eventbus, handleError = 'throw', code = void 0, docFilter = void 0 } = {})
    {
       /**
        * AST of source code.
@@ -109,6 +103,13 @@ export default class DocGeneratorOld
        */
       this._handleError = handleError;
 
+      /**
+       * Optional function to invoke before a static doc is added to the given DocDB.
+       * @type {Function}
+       * @private
+       */
+      this._docFilter = docFilter;
+
       // Reset tracking arrays.
       this._processedClassNodes.length = 0;
 
@@ -120,7 +121,7 @@ export default class DocGeneratorOld
        this._eventbus, code) : Docs.ModuleFileDoc.create(docID, ast, ast, pathResolver, [], this._eventbus);
 
       // Insert file or memory doc and reset.
-      this._docDB.insertStaticDoc(staticDoc);
+      this._insertStaticDoc(staticDoc);
 
       /**
        * Store the docID for the memory / file and add it to all children doc data as `__moduleID__`.
@@ -491,6 +492,18 @@ export default class DocGeneratorOld
       }
 
       return null;
+   }
+
+   /**
+    * Inserts a doc into the associated DocDB after running any optionally supplied doc filter.
+    *
+    * @param {StaticDoc}   staticDoc - Static doc object to insert into the associated DocDB.
+    *
+    * @private
+    */
+   static _insertStaticDoc(staticDoc)
+   {
+      this._docDB.insertStaticDoc(staticDoc, this._docFilter);
    }
 
    /**
@@ -1020,7 +1033,7 @@ export default class DocGeneratorOld
          }
 
          // Insert doc and reset.
-         if (staticDoc) { this._docDB.insertStaticDoc(staticDoc); }
+         if (staticDoc) { this._insertStaticDoc(staticDoc); }
       }
    }
 
