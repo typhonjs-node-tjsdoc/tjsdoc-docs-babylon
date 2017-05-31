@@ -1,5 +1,5 @@
 /**
- * Babel has a bug which requires a workaround for `export * from '...'` found in `./src/BabylonDocs.js`.
+ * Babel has a bug which requires a workaround for `export * from '...'` found in `./src/doc/index.js`.
  * See this issue: https://github.com/babel/babel/issues/2877
  * Solution applied is found here: https://github.com/babel/babel/issues/2877#issuecomment-280297439
  * `passPerPreset` is enabled to run `transform-runtime` then the standard presets.
