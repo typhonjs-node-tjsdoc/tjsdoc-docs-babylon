@@ -26,7 +26,7 @@ export default class TestDocGenerator
     */
    static onPreGenerate(ev)
    {
-      if (ev.data.config.test) { this._type = ev.data.config.test.type; }
+      if (ev.data.mainConfig.test) { this._type = ev.data.mainConfig.test.type; }
    }
 
    /**
