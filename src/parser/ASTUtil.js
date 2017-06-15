@@ -421,21 +421,23 @@ export default class ASTUtil
          // If `allComments` is true then include all leading comments otherwise by default just the last one.
          const comment = node.leadingComments[allComments ? 0 : node.leadingComments.length - 1];
 
-         const startLine = comment.loc.start.line - 1;
-         const endLine = node.loc.start.line;
+         const lineStart = comment.loc.start.line - 1;
+         const lineEnd = node.loc.start.line;
 
-         const targetLines = this._eventbus.triggerSync('typhonjs:util:file:lines:read', filePath, startLine, endLine);
+         const targetLines = this._eventbus.triggerSync('typhonjs:util:file:lines:read',
+          { filePath, lineStart, lineEnd });
 
-         return { text: targetLines.join('\n'), startLine, endLine };
+         return { text: targetLines.join('\n'), lineStart, lineEnd };
       }
       else // Otherwise just return up to 10 lines before the first line of the node.
       {
-         const endLine = node.loc.start.line;
-         const startLine = endLine - 10;
+         const lineEnd = node.loc.start.line;
+         const lineStart = lineEnd - 10;
 
-         const targetLines = this._eventbus.triggerSync('typhonjs:util:file:lines:read', filePath, startLine, endLine);
+         const targetLines = this._eventbus.triggerSync('typhonjs:util:file:lines:read',
+          { filePath, lineStart, lineEnd });
 
-         return { text: targetLines.join('\n'), startLine, endLine };
+         return { text: targetLines.join('\n'), lineStart, lineEnd };
       }
    }
 
