@@ -23,7 +23,7 @@ export { Docs, DocGenerator, TestDocGenerator };
  *
  * @ignore
  */
-export function onPluginLoad(ev)
+export async function onPluginLoad(ev)
 {
    const eventbus = ev.eventbus;
 
@@ -35,7 +35,7 @@ export function onPluginLoad(ev)
    });
 
    // Adds all Babylon doc parser plugins
-   eventbus.trigger('plugins:add:all', [
+   await eventbus.triggerAsync('plugins:add:all:async', [
       { name: 'tjsdoc-ast-util', instance: new ASTUtil() },
       { name: 'tjsdoc-comment-parser', instance: new CommentParser() },
       { name: 'tjsdoc-doc-generator', instance: DocGenerator },

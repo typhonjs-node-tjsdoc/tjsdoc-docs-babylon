@@ -24,7 +24,7 @@ export default class TestDocGenerator
     *
     * @param {PluginEvent} ev - The plugin event.
     */
-   static onPreGenerate(ev)
+   static onRuntimePreGenerateAsync(ev)
    {
       if (ev.data.mainConfig.test) { this._type = ev.data.mainConfig.test.type; }
    }
