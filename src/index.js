@@ -35,7 +35,7 @@ export async function onPluginLoad(ev)
    });
 
    // Adds all Babylon doc parser plugins
-   await eventbus.triggerAsync('plugins:add:all:async', [
+   await eventbus.triggerAsync('plugins:async:add:all', [
       { name: 'tjsdoc-ast-util', instance: new ASTUtil() },
       { name: 'tjsdoc-comment-parser', instance: new CommentParser() },
       { name: 'tjsdoc-doc-generator', instance: DocGenerator },
